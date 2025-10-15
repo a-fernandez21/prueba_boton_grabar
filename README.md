@@ -1,16 +1,8 @@
 # prueba_boton_grabar
 
-A new Flutter project.
+This project is a test for the final application, in which we experiment with saving and recording audio in MP3 format.
 
-## Getting Started
+## What the app looks like
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+![app idle](/images/app_idle.png)
+![app while recording](/images/app_recording.png)
