@@ -230,24 +230,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Fila: Grabando + cronómetro + botón minimizar
+                // Botón minimizar en la esquina superior derecha
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.fiber_manual_record,
-                          color: _isPaused ? Colors.orange : Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _isPaused ? 'Pausado' : 'Grabando',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
                     ElevatedButton.icon(
                       onPressed: _minimizeRecording,
                       style: ElevatedButton.styleFrom(
@@ -272,6 +258,31 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
                 const SizedBox(height: 8),
 
+                // Estado: Grabando/Pausado centrado
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.fiber_manual_record,
+                        color: _isPaused ? Colors.orange : Colors.red,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isPaused ? 'Pausado' : 'Grabando',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                // Cronómetro centrado
                 Center(
                   child: Text(
                     _formatTime(_seconds),
@@ -315,7 +326,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                 Text(
                   widget.tipoGrabacion,
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Color.fromARGB(255, 255, 255, 255),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -330,89 +341,112 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
           const SizedBox(height: 24),
 
           // Botones de control
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Stack(
+            alignment: Alignment.center,
             children: [
-              // Botón Descartar (pequeño) - Con animación
-              AnimatedScale(
-                scale: _isRecording ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 750),
-                curve: Curves.easeOutBack,
-                child: AnimatedOpacity(
-                  opacity: _isRecording ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 750),
-                  child: Container(
-                    width: 48,
-                    height: 48,
+              // Row para mantener el layout
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Espacio para botón izquierdo
+                  SizedBox(width: _isRecording ? 48 : 0),
+                  SizedBox(width: _isRecording ? 24 : 0),
+                  // Botón central siempre visible
+                  Container(
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 231, 231, 231),
+                      color: _isRecording && !_isPaused 
+                          ? Color.fromARGB(255, 228, 228, 228)
+                          : const Color(0xFF00BBDA),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      onPressed: _isRecording ? _discardRecording : null,
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.red,
-                        size: 42,
+                      onPressed: () {
+                        if (!_isRecording) {
+                          _startRecording();
+                        } else if (_isPaused) {
+                          _resumeRecording();
+                        } else {
+                          _pauseRecording();
+                        }
+                      },
+                      icon: Icon(
+                        (!_isRecording || _isPaused) 
+                            ? Icons.mic 
+                            : Icons.pause,
+                        color: (!_isRecording || _isPaused) 
+                            ? Colors.white 
+                            : Colors.black,
+                        size: 60,
                       ),
-                      padding: EdgeInsets.zero,
                     ),
                   ),
-                ),
+                  SizedBox(width: _isRecording ? 24 : 0),
+                  SizedBox(width: _isRecording ? 48 : 0),
+                ],
               ),
-              SizedBox(width: _isRecording ? 24 : 0),
-              // Botón Iniciar/Pausa/Reanudar
-              Container(
-                width: 80, // tamaño del boton
-                height: 80,
-                decoration: BoxDecoration(
-                  color: _isRecording && !_isPaused 
-                      ? Color.fromARGB(255, 231, 231, 231)
-                      : const Color(0xFF00BBDA),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    if (!_isRecording) {
-                      _startRecording(); // Iniciar grabación la primera vez
-                    } else if (_isPaused) {
-                      _resumeRecording(); // Reanudar
-                    } else {
-                      _pauseRecording(); // Pausar
-                    }
-                  },
-                  icon: Icon(
-                    (!_isRecording || _isPaused) 
-                        ? Icons.mic 
-                        : Icons.pause,
-                    color: (!_isRecording || _isPaused) 
-                        ? Colors.white 
-                        : Colors.black,
-                    size: 60, // tamaño del icono
-                  ),
-                ),
-              ),
-              SizedBox(width: _isRecording ? 24 : 0),
-              // Botón Detener (más pequeño) - Con animación
-              AnimatedScale(
-                scale: _isRecording ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 750),
+              
+              // Botón Descartar - Animado desde el centro hacia la izquierda
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 550),
                 curve: Curves.easeOutBack,
-                child: AnimatedOpacity(
-                  opacity: _isRecording ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 750),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 231, 231, 231),
-                      shape: BoxShape.circle,
+                left: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                child: AnimatedScale(
+                  scale: _isRecording ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 550),
+                  curve: Curves.easeOutBack,
+                  child: AnimatedOpacity(
+                    opacity: _isRecording ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 450),
+                    curve: Curves.easeOutBack,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 228, 228, 228),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _isRecording ? _discardRecording : null,
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                          size: 42,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
                     ),
-                    child: IconButton(
-                      onPressed: _stopRecording,
-                      icon: const Icon(Icons.stop, color: Colors.red, size: 42),
-                      padding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              
+              // Botón Detener - Animado desde el centro hacia la derecha
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 550),
+                curve: Curves.easeOutBack,
+                right: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                child: AnimatedScale(
+                  scale: _isRecording ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 550),
+                  curve: Curves.easeOutBack,
+                  child: AnimatedOpacity(
+                    opacity: _isRecording ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 450),
+                    curve: Curves.easeOutBack,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 228, 228, 228),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _stopRecording,
+                        icon: const Icon(Icons.stop, color: Colors.red, size: 42),
+                        padding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                 ),
@@ -437,7 +471,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Color.fromARGB(255,231,231,231),
+                    color: Color.fromARGB(255,228,228,228),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
