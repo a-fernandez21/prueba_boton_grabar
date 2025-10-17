@@ -36,17 +36,12 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   void initState() {
     super.initState();
     _initRecorder();
-    _startRecordingAutomatically();
+    // No iniciar grabación automáticamente
+    // _startRecordingAutomatically();
   }
 
   Future<void> _initRecorder() async {
     await _audioService.initialize();
-  }
-
-  Future<void> _startRecordingAutomatically() async {
-    // Iniciar grabación automáticamente al entrar a la pantalla
-    await Future.delayed(const Duration(milliseconds: 800));
-    _startRecording();
   }
 
   void _startTimer() {
@@ -68,22 +63,29 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     // Suscribirse al stream de amplitud del grabador
     _recorderSubscription = _audioService.recorder.onProgress?.listen((e) {
       if (!_isPaused && mounted) {
-        // Obtener decibelios (típicamente entre -160 dB (silencio) y 0 dB (máximo))
-        final decibels = e.decibels ?? -160.0;
-        
-        // Normalizar decibelios a un rango de 0.1 a 1.0
-        // -60 dB o menos = 0.1 (silencio)
-        // -20 dB o más = 1.0 (voz fuerte)
+        // flutter_sound reporta valores POSITIVOS en el rango 0-120 dB
+        // donde valores bajos = silencio y valores altos = sonido fuerte
+        final decibels = e.decibels ?? 0.0;
+
+        // Normalizar a un rango de 0.05 a 1.0 usando la escala positiva
+        // 0-45 dB = silencio/ruido ambiente → 0.05 (ondas casi invisibles)
+        // 65+ dB = voz muy fuerte → 1.0 (ondas al máximo)
         double normalizedAmplitude;
-        if (decibels <= -60) {
-          normalizedAmplitude = 0.1;
-        } else if (decibels >= -20) {
+        
+        if (decibels <= 45) {
+          // Silencio o ruido ambiente bajo
+          normalizedAmplitude = 0.05;
+        } else if (decibels >= 65) {
+          // Voz fuerte
           normalizedAmplitude = 1.0;
         } else {
-          // Interpolación lineal entre -60 y -20 dB
-          normalizedAmplitude = 0.1 + ((decibels + 60) / 40) * 0.9;
+          // Interpolación lineal entre 45 y 65 dB (rango de 20 dB)
+          normalizedAmplitude = 0.05 + ((decibels - 45) / 20) * 0.95;
         }
-        
+
+        // Debug detallado
+        print('🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px');
+
         setState(() {
           _currentAmplitude = normalizedAmplitude;
           // Rotar las ondas y agregar la nueva amplitud
@@ -105,13 +107,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _pauseWaveAnimation() {
-    // Cancelar suscripción cuando está pausado
+    // Cancelar suscripción cuando está pausado, pero mantener las ondas visibles
     _recorderSubscription?.cancel();
     _recorderSubscription = null;
-    setState(() {
-      _waveHeights = List.generate(50, (_) => 0.1);
-      _currentAmplitude = 0.0;
-    });
+    // NO resetear _waveHeights ni _currentAmplitude para mantener el estado visual
   }
 
   String _formatTime(int seconds) {
@@ -152,7 +151,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
   Future<void> _stopRecording() async {
     if (!_isRecording) return; // No detener si no está grabando
-    
+
     _stopTimer();
     _stopWaveAnimation();
     final result = await _audioService.stopRecording();
@@ -175,6 +174,31 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     }
   }
 
+  Future<void> _discardRecording() async {
+    // Detener la grabación sin guardar
+    _stopTimer();
+    _stopWaveAnimation();
+    await _audioService.stopRecording();
+    
+    setState(() {
+      _isRecording = false;
+      _isPaused = false;
+      _seconds = 0;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Grabación descartada'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Volver a la pantalla anterior
+      Navigator.pop(context);
+    }
+  }
+
   void _minimizeRecording() {
     // Volver a la pantalla anterior sin detener la grabación
     Navigator.pop(context);
@@ -193,7 +217,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Sección azul superior
+          // Sección superior (gris inicial/pausado, cyan cuando graba)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.only(
@@ -202,7 +226,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
               right: 24,
               bottom: 16,
             ),
-            color: Colors.cyan,
+            color: _isRecording && !_isPaused ? Colors.cyan : Colors.grey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -284,9 +308,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Tipo de grabación
                 Text(
                   widget.tipoGrabacion,
@@ -310,12 +334,42 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Botón Pausa/Reanudar/Grabar
+              // Botón Descartar (pequeño) - Con animación
+              AnimatedScale(
+                scale: _isRecording ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 750),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  opacity: _isRecording ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 750),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 231, 231, 231),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: _isRecording ? _discardRecording : null,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 42,
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: _isRecording ? 24 : 0),
+              // Botón Iniciar/Pausa/Reanudar
               Container(
                 width: 80, // tamaño del boton
                 height: 80,
                 decoration: BoxDecoration(
-                  color: _isPaused ? const Color(0xFF00BBDA) : Colors.grey,
+                  color: _isRecording && !_isPaused 
+                      ? Color.fromARGB(255, 231, 231, 231)
+                      : const Color(0xFF00BBDA),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -329,29 +383,38 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     }
                   },
                   icon: Icon(
-                    _isPaused ? Icons.play_arrow : Icons.pause,
-                    color: Colors.white,
+                    (!_isRecording || _isPaused) 
+                        ? Icons.mic 
+                        : Icons.pause,
+                    color: (!_isRecording || _isPaused) 
+                        ? Colors.white 
+                        : Colors.black,
                     size: 60, // tamaño del icono
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
-              // Botón Detener (más pequeño)
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: _stopRecording,
-                  icon: const Icon(
-                    Icons.stop,
-                    color: Colors.red,
-                    size: 42,
+              SizedBox(width: _isRecording ? 24 : 0),
+              // Botón Detener (más pequeño) - Con animación
+              AnimatedScale(
+                scale: _isRecording ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 750),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  opacity: _isRecording ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 750),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 231, 231, 231),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: _stopRecording,
+                      icon: const Icon(Icons.stop, color: Colors.red, size: 42),
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
-                  padding: EdgeInsets.zero,
                 ),
               ),
             ],
@@ -374,7 +437,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Color.fromARGB(255,231,231,231),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(

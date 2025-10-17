@@ -32,10 +32,14 @@ class AudioRecorderService {
         print('⚠️ Permiso de almacenamiento denegado');
       }
       
-      // Abrir sesión de grabación
+      // Abrir sesión de grabación con stream de progreso habilitado
       await _recorder.openRecorder();
+      
+      // Configurar la frecuencia del stream de progreso (cada 100ms)
+      await _recorder.setSubscriptionDuration(const Duration(milliseconds: 100));
+      
       _isInitialized = true;
-      print('✓ Grabador inicializado correctamente');
+      print('✓ Grabador inicializado correctamente con stream de progreso');
       return true;
     } on Exception catch (e) {
       print('✗ Error al inicializar grabador: $e');
