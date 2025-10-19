@@ -18,10 +18,11 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AudioRecorderScreen(
-            paciente: _pacienteSeleccionado!,
-            tipoGrabacion: _tipoGrabacionSeleccionado!,
-          ),
+          builder:
+              (context) => AudioRecorderScreen(
+                paciente: _pacienteSeleccionado!,
+                tipoGrabacion: _tipoGrabacionSeleccionado!,
+              ),
         ),
       );
     }
@@ -29,54 +30,19 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
 
   // Lista de pacientes de ejemplo
   final List<Paciente> _pacientes = [
-    Paciente(
-      id: '001',
-      nombre: 'Juan',
-      apellidos: 'García Pérez',
-      edad: 45,
-    ),
-    Paciente(
-      id: '002',
-      nombre: 'María',
-      apellidos: 'López Martínez',
-      edad: 38,
-    ),
+    Paciente(id: '001', nombre: 'Juan', apellidos: 'García Pérez', edad: 45),
+    Paciente(id: '002', nombre: 'María', apellidos: 'López Martínez', edad: 38),
     Paciente(
       id: '003',
       nombre: 'Carlos',
       apellidos: 'Rodríguez Sánchez',
       edad: 52,
     ),
-    Paciente(
-      id: '004',
-      nombre: 'Ana',
-      apellidos: 'Fernández Gómez',
-      edad: 29,
-    ),
-    Paciente(
-      id: '005',
-      nombre: 'Pedro',
-      apellidos: 'Martín Ruiz',
-      edad: 61,
-    ),
-    Paciente(
-      id: '006',
-      nombre: 'Laura',
-      apellidos: 'Jiménez Torres',
-      edad: 34,
-    ),
-    Paciente(
-      id: '007',
-      nombre: 'Roberto',
-      apellidos: 'Díaz Moreno',
-      edad: 47,
-    ),
-    Paciente(
-      id: '008',
-      nombre: 'Carmen',
-      apellidos: 'Muñoz Álvarez',
-      edad: 56,
-    ),
+    Paciente(id: '004', nombre: 'Ana', apellidos: 'Fernández Gómez', edad: 29),
+    Paciente(id: '005', nombre: 'Pedro', apellidos: 'Martín Ruiz', edad: 61),
+    Paciente(id: '006', nombre: 'Laura', apellidos: 'Jiménez Torres', edad: 34),
+    Paciente(id: '007', nombre: 'Roberto', apellidos: 'Díaz Moreno', edad: 47),
+    Paciente(id: '008', nombre: 'Carmen', apellidos: 'Muñoz Álvarez', edad: 56),
   ];
 
   @override
@@ -87,15 +53,10 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
           padding: EdgeInsets.zero,
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.cyan,
-              ),
+              decoration: BoxDecoration(color: Colors.cyan),
               child: Text(
                 'Menú',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
             ListTile(
@@ -111,10 +72,11 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
       appBar: AppBar(
         title: const Text(''),
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -126,10 +88,7 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
           children: [
             const Text(
               'Grabadora',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
 
@@ -140,13 +99,14 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<Paciente>(
-              value: _pacienteSeleccionado,
-              items: _pacientes.map((paciente) {
-                return DropdownMenuItem<Paciente>(
-                  value: paciente,
-                  child: Text(paciente.displayText),
-                );
-              }).toList(),
+              initialValue: _pacienteSeleccionado,
+              items:
+                  _pacientes.map((paciente) {
+                    return DropdownMenuItem<Paciente>(
+                      value: paciente,
+                      child: Text(paciente.displayText),
+                    );
+                  }).toList(),
               onChanged: (Paciente? nuevoPaciente) {
                 setState(() {
                   _pacienteSeleccionado = nuevoPaciente;
@@ -172,25 +132,29 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
 
             // Botón 1 - Nueva anamnesis (selector)
             OutlinedButton(
-              onPressed: _pacienteSeleccionado == null 
-                ? null 
-                : () {
-                    setState(() {
-                      _tipoGrabacionSeleccionado = 'Nueva anamnesis';
-                    });
-                  },
+              onPressed:
+                  _pacienteSeleccionado == null
+                      ? null
+                      : () {
+                        setState(() {
+                          _tipoGrabacionSeleccionado = 'Nueva anamnesis';
+                        });
+                      },
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: _tipoGrabacionSeleccionado == 'Nueva anamnesis' 
-                  ? Colors.lightBlueAccent.withOpacity(0.1)
-                  : Colors.white,
+                backgroundColor:
+                    _tipoGrabacionSeleccionado == 'Nueva anamnesis'
+                        ? Colors.lightBlueAccent.withOpacity(0.1)
+                        : Colors.white,
                 side: BorderSide(
-                  color: _pacienteSeleccionado == null 
-                    ? Colors.grey 
-                    : (_tipoGrabacionSeleccionado == 'Nueva anamnesis'
-                        ? Colors.lightBlueAccent
-                        : Colors.lightBlueAccent.withOpacity(0.5)),
-                  width: _tipoGrabacionSeleccionado == 'Nueva anamnesis' ? 2 : 1,
+                  color:
+                      _pacienteSeleccionado == null
+                          ? Colors.grey
+                          : (_tipoGrabacionSeleccionado == 'Nueva anamnesis'
+                              ? Colors.lightBlueAccent
+                              : Colors.lightBlueAccent.withOpacity(0.5)),
+                  width:
+                      _tipoGrabacionSeleccionado == 'Nueva anamnesis' ? 2 : 1,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32),
@@ -200,18 +164,24 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_tipoGrabacionSeleccionado == 'Nueva anamnesis')
-                    const Icon(Icons.check_circle, color: Colors.lightBlueAccent, size: 20),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.lightBlueAccent,
+                      size: 20,
+                    ),
                   if (_tipoGrabacionSeleccionado == 'Nueva anamnesis')
                     const SizedBox(width: 8),
                   Text(
                     'Nueva anamnesis',
                     style: TextStyle(
-                      color: _pacienteSeleccionado == null 
-                        ? Colors.grey 
-                        : Colors.lightBlueAccent,
-                      fontWeight: _tipoGrabacionSeleccionado == 'Nueva anamnesis' 
-                        ? FontWeight.bold 
-                        : FontWeight.normal,
+                      color:
+                          _pacienteSeleccionado == null
+                              ? Colors.grey
+                              : Colors.lightBlueAccent,
+                      fontWeight:
+                          _tipoGrabacionSeleccionado == 'Nueva anamnesis'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -222,25 +192,29 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
 
             // Botón 2 - Nuevo seguimiento (selector)
             OutlinedButton(
-              onPressed: _pacienteSeleccionado == null 
-                ? null 
-                : () {
-                    setState(() {
-                      _tipoGrabacionSeleccionado = 'Nuevo seguimiento';
-                    });
-                  },
+              onPressed:
+                  _pacienteSeleccionado == null
+                      ? null
+                      : () {
+                        setState(() {
+                          _tipoGrabacionSeleccionado = 'Nuevo seguimiento';
+                        });
+                      },
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),
-                backgroundColor: _tipoGrabacionSeleccionado == 'Nuevo seguimiento' 
-                  ? Colors.lightBlueAccent.withOpacity(0.1)
-                  : Colors.white,
+                backgroundColor:
+                    _tipoGrabacionSeleccionado == 'Nuevo seguimiento'
+                        ? Colors.lightBlueAccent.withOpacity(0.1)
+                        : Colors.white,
                 side: BorderSide(
-                  color: _pacienteSeleccionado == null 
-                    ? Colors.grey 
-                    : (_tipoGrabacionSeleccionado == 'Nuevo seguimiento'
-                        ? Colors.lightBlueAccent
-                        : Colors.lightBlueAccent.withOpacity(0.5)),
-                  width: _tipoGrabacionSeleccionado == 'Nuevo seguimiento' ? 2 : 1,
+                  color:
+                      _pacienteSeleccionado == null
+                          ? Colors.grey
+                          : (_tipoGrabacionSeleccionado == 'Nuevo seguimiento'
+                              ? Colors.lightBlueAccent
+                              : Colors.lightBlueAccent.withOpacity(0.5)),
+                  width:
+                      _tipoGrabacionSeleccionado == 'Nuevo seguimiento' ? 2 : 1,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32),
@@ -250,18 +224,24 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (_tipoGrabacionSeleccionado == 'Nuevo seguimiento')
-                    const Icon(Icons.check_circle, color: Colors.lightBlueAccent, size: 20),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.lightBlueAccent,
+                      size: 20,
+                    ),
                   if (_tipoGrabacionSeleccionado == 'Nuevo seguimiento')
                     const SizedBox(width: 8),
                   Text(
                     'Nuevo seguimiento',
                     style: TextStyle(
-                      color: _pacienteSeleccionado == null 
-                        ? Colors.grey 
-                        : Colors.lightBlueAccent,
-                      fontWeight: _tipoGrabacionSeleccionado == 'Nuevo seguimiento' 
-                        ? FontWeight.bold 
-                        : FontWeight.normal,
+                      color:
+                          _pacienteSeleccionado == null
+                              ? Colors.grey
+                              : Colors.lightBlueAccent,
+                      fontWeight:
+                          _tipoGrabacionSeleccionado == 'Nuevo seguimiento'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -275,9 +255,11 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: (_pacienteSeleccionado == null || _tipoGrabacionSeleccionado == null)
-                  ? null 
-                  : _navegarAGrabacion,
+                onPressed:
+                    (_pacienteSeleccionado == null ||
+                            _tipoGrabacionSeleccionado == null)
+                        ? null
+                        : _navegarAGrabacion,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan,
                   disabledBackgroundColor: Colors.grey,
