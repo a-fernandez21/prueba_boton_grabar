@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../models/paciente.dart';
 import '../services/audio_recorder_service.dart';
+import '../services/recording_overlay_service.dart';
 
 class AudioRecorderScreen extends StatefulWidget {
   final Paciente paciente;
@@ -22,6 +23,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   bool _isRecording = false;
   bool _isPaused = false;
   final AudioRecorderService _audioService = AudioRecorderService();
+  final RecordingOverlayService _overlayService = RecordingOverlayService();
 
   // Cronómetro
   int _seconds = 0;
@@ -39,12 +41,14 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   void initState() {
     super.initState();
     _initRecorder();
+    _overlayService.setInAudioScreen(true);
     // No iniciar grabación automáticamente
     // _startRecordingAutomatically();
   }
 
   Future<void> _initRecorder() async {
     await _audioService.initialize();
+    _overlayService.setAudioService(_audioService);
   }
 
   void _startTimer() {
@@ -132,6 +136,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         _isRecording = true;
         _isPaused = false;
       });
+      _overlayService.startRecording();
       _startTimer();
       _startWaveAnimation();
     }
@@ -143,6 +148,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       _isPaused = true;
     });
+    _overlayService.pauseRecording();
     _pauseWaveAnimation();
   }
 
@@ -151,12 +157,17 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       _isPaused = false;
     });
+    _overlayService.resumeRecording();
     _startWaveAnimation();
   }
 
   Future<void> _confirmStopRecording() async {
     if (!_isRecording) return; // No detener si no está grabando
 
+    _stopTimer();
+    _stopWaveAnimation();
+    final result = await _audioService.stopRecording();
+    _overlayService.stopRecording();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -264,6 +275,18 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     }
   }
 
+  Future<void> _discardRecording() async {
+    // Detener la grabación sin guardar
+    _stopTimer();
+    _stopWaveAnimation();
+    await _audioService.stopRecording();
+    _overlayService.stopRecording();
+
+    setState(() {
+      _isRecording = false;
+      _isPaused = false;
+      _seconds = 0;
+    });
   Future<void> _confirmDiscardRecording() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -317,6 +340,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _minimizeRecording() {
+    // Marcar que salimos de la pantalla de audio y pasar el tiempo actual
+    _overlayService.setInAudioScreen(false, context, _seconds);
     // Volver a la pantalla anterior sin detener la grabación
     Navigator.pop(context);
   }
@@ -325,6 +350,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   void dispose() {
     _stopTimer();
     _stopWaveAnimation();
+    _overlayService.setInAudioScreen(false);
+    _overlayService.hideOverlay();
     _audioService.dispose();
     super.dispose();
   }
@@ -351,7 +378,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: _minimizeRecording,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
@@ -364,10 +391,13 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      icon: const Icon(Icons.arrow_back, size: 16),
-                      label: const Text(
-                        'Volver',
-                        style: TextStyle(fontSize: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text('Minimizar', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Icon(Icons.logout, size: 16),
+                        ],
                       ),
                     ),
                   ],
@@ -381,6 +411,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
+                        _isPaused ? Icons.pause : Icons.fiber_manual_record,
+                        color: _isPaused ? Colors.black : Colors.red,
                         Icons.fiber_manual_record,
                         color: (!_isRecording || _isPaused) ? Colors.orange : Colors.red,
                         size: 16,

@@ -48,6 +48,7 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -55,13 +56,13 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.cyan),
               child: Text(
-                'Menú',
+                'Fisiomap',
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.mic),
-              title: const Text('Grabadora'),
+              title: const Text('Grabadora inteligente'),
               onTap: () {
                 Navigator.pop(context);
               },
@@ -100,6 +101,7 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             const SizedBox(height: 8),
             DropdownButtonFormField<Paciente>(
               initialValue: _pacienteSeleccionado,
+              dropdownColor: Colors.white,
               items:
                   _pacientes.map((paciente) {
                     return DropdownMenuItem<Paciente>(
@@ -115,6 +117,18 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.lightBlueAccent),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.lightBlueAccent),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: Colors.lightBlueAccent,
+                    width: 2,
+                  ),
                 ),
                 hintText: 'Seleccionar paciente...',
                 filled: true,
