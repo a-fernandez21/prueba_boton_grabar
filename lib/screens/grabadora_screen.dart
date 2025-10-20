@@ -56,13 +56,13 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.cyan),
               child: Text(
-                'Menú',
+                'Fisiomap',
                 style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ),
             ListTile(
               leading: const Icon(Icons.mic),
-              title: const Text('Grabadora'),
+              title: const Text('Grabadora inteligente'),
               onTap: () {
                 Navigator.pop(context);
               },
