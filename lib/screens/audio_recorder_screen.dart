@@ -362,10 +362,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color:
-                          _isRecording && !_isPaused
-                              ? Color.fromARGB(255, 228, 228, 228)
-                              : const Color(0xFF00BBDA),
+                      color: const Color.fromARGB(255, 255, 14, 14),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -380,10 +377,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       },
                       icon: Icon(
                         (!_isRecording || _isPaused) ? Icons.mic : Icons.pause,
-                        color:
-                            (!_isRecording || _isPaused)
-                                ? Colors.white
-                                : Colors.black,
+                        color: const Color.fromARGB(255, 245, 245, 245),
                         size: 60,
                       ),
                     ),
@@ -419,9 +413,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed: _isRecording ? _discardRecording : null,
                         icon: const Icon(
-                          Icons.delete_outline,
+                          Icons.close,
                           color: Colors.red,
-                          size: 42,
+                          size: 30,
                         ),
                         padding: EdgeInsets.zero,
                       ),
@@ -456,9 +450,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed: _stopRecording,
                         icon: const Icon(
-                          Icons.stop,
-                          color: Colors.red,
-                          size: 42,
+                          Icons.check,
+                          color: Color.fromARGB(255, 94, 215, 120),
+                          size: 30,
                         ),
                         padding: EdgeInsets.zero,
                       ),
