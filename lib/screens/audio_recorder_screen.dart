@@ -361,26 +361,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       ),
                     ),
                     // Marcadores de audio
-                    if (_audioMarks.isNotEmpty)
-                      Positioned(
-                        right: 16,
-                        top: 0,
-                        bottom: 0,
-                        child: Container(
-                          width: 3,
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withOpacity(0.5),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    
                   ],
                 ),
 
