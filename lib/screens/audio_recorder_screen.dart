@@ -211,8 +211,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _minimizeRecording() {
-    // Marcar que salimos de la pantalla de audio
-    _overlayService.setInAudioScreen(false, context);
+    // Marcar que salimos de la pantalla de audio y pasar el tiempo actual
+    _overlayService.setInAudioScreen(false, context, _seconds);
     // Volver a la pantalla anterior sin detener la grabación
     Navigator.pop(context);
   }
