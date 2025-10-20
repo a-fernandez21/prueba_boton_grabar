@@ -29,8 +29,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
   // Visualizador de ondas basado en amplitud real
   StreamSubscription? _recorderSubscription;
-  List<double> _waveHeights = List.generate(50, (_) => 0.1);
+  List<double> _waveHeights = List.generate(70, (_) => 0.1);
   double _currentAmplitude = 0.0;
+
+  // Marcas en el audio
+  List<String> _audioMarks = [];
 
   @override
   void initState() {
@@ -71,7 +74,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         // 0-45 dB = silencio/ruido ambiente → 0.05 (ondas casi invisibles)
         // 65+ dB = voz muy fuerte → 1.0 (ondas al máximo)
         double normalizedAmplitude;
-        
+
         if (decibels <= 45) {
           // Silencio o ruido ambiente bajo
           normalizedAmplitude = 0.05;
@@ -84,7 +87,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         }
 
         // Debug detallado
-        print('🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px');
+        print(
+          '🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px',
+        );
 
         setState(() {
           _currentAmplitude = normalizedAmplitude;
@@ -159,6 +164,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       _isRecording = false;
       _isPaused = false;
       _seconds = 0;
+      _audioMarks.clear(); // Limpiar marcas al guardar
     });
 
     if (mounted) {
@@ -174,16 +180,51 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     }
   }
 
+  void _addMark() {
+    // Añadir marca en el tiempo actual
+    final String timeStamp = _formatTime(_seconds);
+    setState(() {
+      _audioMarks.add(timeStamp);
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Marca añadida en $timeStamp'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
+  void _removeMark(int index) {
+    setState(() {
+      _audioMarks.removeAt(index);
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Marca eliminada'),
+          duration: Duration(seconds: 1),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _discardRecording() async {
     // Detener la grabación sin guardar
     _stopTimer();
     _stopWaveAnimation();
     await _audioService.stopRecording();
-    
+
     setState(() {
       _isRecording = false;
       _isPaused = false;
       _seconds = 0;
+      _audioMarks.clear(); // Limpiar marcas
     });
 
     if (mounted) {
@@ -280,8 +321,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 4),
-
                 // Cronómetro centrado
                 Center(
                   child: Text(
@@ -297,27 +336,52 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                 const SizedBox(height: 16),
 
                 // Visualizador de ondas de audio
-                Container(
-                  height: 60,
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: List.generate(
-                      _waveHeights.length,
-                      (index) => Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(2),
+                Stack(
+                  children: [
+                    Container(
+                      height: 60,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: List.generate(
+                          _waveHeights.length,
+                          (index) => Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.8),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              height: 70 * _waveHeights[index],
+                            ),
                           ),
-                          height: 60 * _waveHeights[index],
                         ),
                       ),
                     ),
-                  ),
+                    // Marcadores de audio
+                    if (_audioMarks.isNotEmpty)
+                      Positioned(
+                        right: 16,
+                        top: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.5),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
 
                 const SizedBox(height: 8),
@@ -357,9 +421,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: _isRecording && !_isPaused 
-                          ? Color.fromARGB(255, 228, 228, 228)
-                          : const Color(0xFF00BBDA),
+                      color:
+                          _isRecording && !_isPaused
+                              ? Color.fromARGB(255, 228, 228, 228)
+                              : const Color(0xFF00BBDA),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -373,12 +438,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         }
                       },
                       icon: Icon(
-                        (!_isRecording || _isPaused) 
-                            ? Icons.mic 
-                            : Icons.pause,
-                        color: (!_isRecording || _isPaused) 
-                            ? Colors.white 
-                            : Colors.black,
+                        (!_isRecording || _isPaused) ? Icons.mic : Icons.pause,
+                        color:
+                            (!_isRecording || _isPaused)
+                                ? Colors.white
+                                : Colors.black,
                         size: 60,
                       ),
                     ),
@@ -387,12 +451,15 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   SizedBox(width: _isRecording ? 48 : 0),
                 ],
               ),
-              
+
               // Botón Descartar - Animado desde el centro hacia la izquierda
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 550),
                 curve: Curves.easeOutBack,
-                left: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                left:
+                    _isRecording
+                        ? MediaQuery.of(context).size.width / 2 - 132
+                        : MediaQuery.of(context).size.width / 2 - 40,
                 child: AnimatedScale(
                   scale: _isRecording ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 550),
@@ -409,10 +476,13 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        onPressed: _isRecording ? _discardRecording : null,
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.red,
+                        onPressed:
+                            _isRecording
+                                ? (_isPaused ? _discardRecording : _addMark)
+                                : null,
+                        icon: Icon(
+                          _isPaused ? Icons.close : Icons.bookmark_add,
+                          color: _isPaused ? Colors.red : Colors.blue,
                           size: 42,
                         ),
                         padding: EdgeInsets.zero,
@@ -421,12 +491,15 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   ),
                 ),
               ),
-              
+
               // Botón Detener - Animado desde el centro hacia la derecha
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 550),
                 curve: Curves.easeOutBack,
-                right: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                right:
+                    _isRecording
+                        ? MediaQuery.of(context).size.width / 2 - 132
+                        : MediaQuery.of(context).size.width / 2 - 40,
                 child: AnimatedScale(
                   scale: _isRecording ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 550),
@@ -444,7 +517,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       ),
                       child: IconButton(
                         onPressed: _stopRecording,
-                        icon: const Icon(Icons.check, color: Colors.green, size: 42),
+                        icon: const Icon(
+                          Icons.check,
+                          color: Colors.green,
+                          size: 42,
+                        ),
                         padding: EdgeInsets.zero,
                       ),
                     ),
@@ -456,103 +533,253 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
           const SizedBox(height: 32),
 
-          // Ficha del paciente
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Ficha del paciente',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255,228,228,228),
-                    borderRadius: BorderRadius.circular(12),
+          // Área scrollable con ficha del paciente y marcas
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ficha del paciente',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text.rich(
-                        TextSpan(
-                          text: 'Paciente: ',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: widget.paciente.nombreCompleto,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.normal,
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Color.fromARGB(255, 228, 228, 228),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text.rich(
+                          TextSpan(
+                            text: 'Paciente: ',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              TextSpan(
+                                text: widget.paciente.nombreCompleto,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text.rich(
-                        TextSpan(
-                          text: 'Edad: ',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '${widget.paciente.edad}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.normal,
+                        const SizedBox(height: 8),
+                        Text.rich(
+                          TextSpan(
+                            text: 'Edad: ',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              TextSpan(
+                                text: '${widget.paciente.edad}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text.rich(
-                        TextSpan(
-                          text: 'Enfermedades declaradas: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: 'Ninguna',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        const Text.rich(
+                          TextSpan(
+                            text: 'Enfermedades declaradas: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              TextSpan(
+                                text: 'Ninguna',
+                                style: TextStyle(fontWeight: FontWeight.normal),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text.rich(
-                        TextSpan(
-                          text: 'Última visita: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: '03/10/2025',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        const Text.rich(
+                          TextSpan(
+                            text: 'Última visita: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              TextSpan(
+                                text: '03/10/2025',
+                                style: TextStyle(fontWeight: FontWeight.normal),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text.rich(
-                        TextSpan(
-                          text: 'Próxima visita: ',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          children: [
-                            TextSpan(
-                              text: 'Sin fecha',
-                              style: TextStyle(fontWeight: FontWeight.normal),
-                            ),
-                          ],
+                        const SizedBox(height: 8),
+                        const Text.rich(
+                          TextSpan(
+                            text: 'Próxima visita: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                            children: [
+                              TextSpan(
+                                text: 'Sin fecha',
+                                style: TextStyle(fontWeight: FontWeight.normal),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  // Lista de marcas de audio
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Marcas en el audio',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 228, 228, 228),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child:
+                        _audioMarks.isEmpty
+                            ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Text(
+                                  'Aún no hay marcas de audio',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            )
+                            : Column(
+                              children: [
+                                for (int i = 0; i < _audioMarks.length; i += 2)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom:
+                                          i + 2 < _audioMarks.length ? 8 : 0,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.bookmark,
+                                                      color: Colors.blue,
+                                                      size: 20,
+                                                    ),
+                                                    SizedBox(width: 2),
+                                                    Expanded(
+                                                      child: Text(
+                                                        _audioMarks[i],
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      onPressed:
+                                                          () => _removeMark(i),
+                                                      icon: const Icon(
+                                                        Icons.delete_outline,
+                                                        color: Colors.red,
+                                                        size: 26,
+                                                      ),
+                                                      padding: EdgeInsets.zero,
+                                                      constraints:
+                                                          const BoxConstraints(),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (i + 1 < _audioMarks.length) ...[
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.bookmark,
+                                                        color: Colors.blue,
+                                                        size: 20,
+                                                      ),
+                                                      SizedBox(width: 2),
+                                                      Expanded(
+                                                        child: Text(
+                                                          _audioMarks[i + 1],
+
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 15,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      IconButton(
+                                                        onPressed:
+                                                            () => _removeMark(
+                                                              i + 1,
+                                                            ),
+                                                        icon: const Icon(
+                                                          Icons.delete_outline,
+                                                          color: Colors.red,
+                                                          size: 25,
+                                                        ),
+                                                        constraints:
+                                                            const BoxConstraints(),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ] else
+                                          const Expanded(child: SizedBox()),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                  ),
+                ],
+              ),
             ),
           ),
-
-          const Spacer(),
 
           // Botón historia clínica
           Padding(
