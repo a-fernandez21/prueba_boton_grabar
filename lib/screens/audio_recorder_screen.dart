@@ -154,29 +154,56 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     _startWaveAnimation();
   }
 
-  Future<void> _stopRecording() async {
+  Future<void> _confirmStopRecording() async {
     if (!_isRecording) return; // No detener si no está grabando
 
-    _stopTimer();
-    _stopWaveAnimation();
-    final result = await _audioService.stopRecording();
-    setState(() {
-      _isRecording = false;
-      _isPaused = false;
-      _seconds = 0;
-      _audioMarks.clear(); // Limpiar marcas al guardar
-    });
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Guardar grabación'),
+          content: Text(
+            '¿Guardar la grabación?\n\n'
+            'Duración: ${_formatTime(_seconds)}\n'
+            'Marcas: ${_audioMarks.length}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          duration: AppConstants.snackBarDuration,
-        ),
-      );
+    if (confirmed == true) {
+      _stopTimer();
+      _stopWaveAnimation();
+      final result = await _audioService.stopRecording();
+      setState(() {
+        _isRecording = false;
+        _isPaused = false;
+        _seconds = 0;
+        _audioMarks.clear(); // Limpiar marcas al guardar
+      });
 
-      // Volver a la pantalla anterior después de detener
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            duration: AppConstants.snackBarDuration,
+          ),
+        );
+
+        // Volver a la pantalla anterior después de detener
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -198,45 +225,94 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     }
   }
 
-  void _removeMark(int index) {
-    setState(() {
-      _audioMarks.removeAt(index);
-    });
+  Future<void> _confirmRemoveMark(int index) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar marca'),
+          content: Text('¿Eliminar la marca en ${_audioMarks[index]}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Marca eliminada'),
-          duration: Duration(seconds: 1),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (confirmed == true) {
+      setState(() {
+        _audioMarks.removeAt(index);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Marca eliminada'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> _discardRecording() async {
-    // Detener la grabación sin guardar
-    _stopTimer();
-    _stopWaveAnimation();
-    await _audioService.stopRecording();
+  Future<void> _confirmDiscardRecording() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Descartar grabación'),
+          content: const Text(
+            '¿Estás seguro de que quieres descartar esta grabación?\n\n'
+            'Se perderá todo el audio y las marcas creadas.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Descartar'),
+            ),
+          ],
+        );
+      },
+    );
 
-    setState(() {
-      _isRecording = false;
-      _isPaused = false;
-      _seconds = 0;
-      _audioMarks.clear(); // Limpiar marcas
-    });
+    if (confirmed == true) {
+      // Detener la grabación sin guardar
+      _stopTimer();
+      _stopWaveAnimation();
+      await _audioService.stopRecording();
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Grabación descartada'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() {
+        _isRecording = false;
+        _isPaused = false;
+        _seconds = 0;
+        _audioMarks.clear(); // Limpiar marcas
+      });
 
-      // Volver a la pantalla anterior
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Grabación descartada'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Volver a la pantalla anterior
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -459,7 +535,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed:
                             _isRecording
-                                ? (_isPaused ? _discardRecording : _addMark)
+                                ? (_isPaused ? _confirmDiscardRecording : _addMark)
                                 : null,
                         icon: Icon(
                           _isPaused ? Icons.close : Icons.bookmark_add,
@@ -497,7 +573,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        onPressed: _isPaused ? _stopRecording : null,
+                        onPressed: _isPaused ? _confirmStopRecording : null,
                         icon: Icon(
                           Icons.check,
                           color: _isPaused ? Colors.green : Colors.grey,
@@ -679,7 +755,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                     ),
                                                     IconButton(
                                                       onPressed:
-                                                          () => _removeMark(i),
+                                                          () => _confirmRemoveMark(i),
                                                       icon: const Icon(
                                                         Icons.delete_outline,
                                                         color: Colors.red,
@@ -732,7 +808,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                       ),
                                                       IconButton(
                                                         onPressed:
-                                                            () => _removeMark(
+                                                            () => _confirmRemoveMark(
                                                               i + 1,
                                                             ),
                                                         icon: const Icon(
