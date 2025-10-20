@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../models/paciente.dart';
 import '../services/audio_recorder_service.dart';
+import '../services/recording_overlay_service.dart';
 
 class AudioRecorderScreen extends StatefulWidget {
   final Paciente paciente;
@@ -22,6 +23,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   bool _isRecording = false;
   bool _isPaused = false;
   final AudioRecorderService _audioService = AudioRecorderService();
+  final RecordingOverlayService _overlayService = RecordingOverlayService();
 
   // Cronómetro
   int _seconds = 0;
@@ -36,12 +38,14 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   void initState() {
     super.initState();
     _initRecorder();
+    _overlayService.setInAudioScreen(true);
     // No iniciar grabación automáticamente
     // _startRecordingAutomatically();
   }
 
   Future<void> _initRecorder() async {
     await _audioService.initialize();
+    _overlayService.setAudioService(_audioService);
   }
 
   void _startTimer() {
@@ -129,6 +133,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         _isRecording = true;
         _isPaused = false;
       });
+      _overlayService.startRecording();
       _startTimer();
       _startWaveAnimation();
     }
@@ -140,6 +145,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       _isPaused = true;
     });
+    _overlayService.pauseRecording();
     _pauseWaveAnimation();
   }
 
@@ -148,6 +154,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       _isPaused = false;
     });
+    _overlayService.resumeRecording();
     _startWaveAnimation();
   }
 
@@ -157,6 +164,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     _stopTimer();
     _stopWaveAnimation();
     final result = await _audioService.stopRecording();
+    _overlayService.stopRecording();
     setState(() {
       _isRecording = false;
       _isPaused = false;
@@ -181,6 +189,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     _stopTimer();
     _stopWaveAnimation();
     await _audioService.stopRecording();
+    _overlayService.stopRecording();
 
     setState(() {
       _isRecording = false;
@@ -202,6 +211,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _minimizeRecording() {
+    // Marcar que salimos de la pantalla de audio
+    _overlayService.setInAudioScreen(false, context);
     // Volver a la pantalla anterior sin detener la grabación
     Navigator.pop(context);
   }
@@ -210,6 +221,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   void dispose() {
     _stopTimer();
     _stopWaveAnimation();
+    _overlayService.setInAudioScreen(false);
+    _overlayService.hideOverlay();
     _audioService.dispose();
     super.dispose();
   }
