@@ -269,8 +269,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.fiber_manual_record,
-                        color: _isPaused ? Colors.orange : Colors.red,
+                        _isPaused ? Icons.pause : Icons.fiber_manual_record,
+                        color: _isPaused ? Colors.black : Colors.red,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
