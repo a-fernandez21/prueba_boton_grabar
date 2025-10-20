@@ -306,12 +306,12 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     children: [
                       Icon(
                         Icons.fiber_manual_record,
-                        color: _isPaused ? Colors.orange : Colors.red,
+                        color: (!_isRecording || _isPaused) ? Colors.orange : Colors.red,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _isPaused ? 'Pausado' : 'Grabando',
+                        (!_isRecording || _isPaused) ? 'Pausado' : 'Grabando',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -516,10 +516,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        onPressed: _stopRecording,
-                        icon: const Icon(
+                        onPressed: _isPaused ? _stopRecording : null,
+                        icon: Icon(
                           Icons.check,
-                          color: Colors.green,
+                          color: _isPaused ? Colors.green : Colors.grey,
                           size: 42,
                         ),
                         padding: EdgeInsets.zero,
