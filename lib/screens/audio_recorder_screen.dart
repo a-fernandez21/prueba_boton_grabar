@@ -411,7 +411,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed: _isRecording ? _discardRecording : null,
                         icon: const Icon(
-                          Icons.delete_outline,
+                          Icons.close,
                           color: Colors.red,
                           size: 42,
                         ),
@@ -444,7 +444,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       ),
                       child: IconButton(
                         onPressed: _stopRecording,
-                        icon: const Icon(Icons.stop, color: Colors.red, size: 42),
+                        icon: const Icon(Icons.check, color: Colors.green, size: 42),
                         padding: EdgeInsets.zero,
                       ),
                     ),
