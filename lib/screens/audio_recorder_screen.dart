@@ -71,7 +71,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         // 0-45 dB = silencio/ruido ambiente → 0.05 (ondas casi invisibles)
         // 65+ dB = voz muy fuerte → 1.0 (ondas al máximo)
         double normalizedAmplitude;
-        
+
         if (decibels <= 45) {
           // Silencio o ruido ambiente bajo
           normalizedAmplitude = 0.05;
@@ -84,7 +84,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         }
 
         // Debug detallado
-        print('🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px');
+        print(
+          '🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px',
+        );
 
         setState(() {
           _currentAmplitude = normalizedAmplitude;
@@ -179,7 +181,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     _stopTimer();
     _stopWaveAnimation();
     await _audioService.stopRecording();
-    
+
     setState(() {
       _isRecording = false;
       _isPaused = false;
@@ -234,7 +236,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: _minimizeRecording,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
@@ -247,10 +249,13 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      icon: const Icon(Icons.arrow_back, size: 16),
-                      label: const Text(
-                        'Volver',
-                        style: TextStyle(fontSize: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text('Minimizar', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Icon(Icons.logout, size: 16),
+                        ],
                       ),
                     ),
                   ],
@@ -357,9 +362,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: _isRecording && !_isPaused 
-                          ? Color.fromARGB(255, 228, 228, 228)
-                          : const Color(0xFF00BBDA),
+                      color:
+                          _isRecording && !_isPaused
+                              ? Color.fromARGB(255, 228, 228, 228)
+                              : const Color(0xFF00BBDA),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -373,12 +379,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         }
                       },
                       icon: Icon(
-                        (!_isRecording || _isPaused) 
-                            ? Icons.mic 
-                            : Icons.pause,
-                        color: (!_isRecording || _isPaused) 
-                            ? Colors.white 
-                            : Colors.black,
+                        (!_isRecording || _isPaused) ? Icons.mic : Icons.pause,
+                        color:
+                            (!_isRecording || _isPaused)
+                                ? Colors.white
+                                : Colors.black,
                         size: 60,
                       ),
                     ),
@@ -387,12 +392,15 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   SizedBox(width: _isRecording ? 48 : 0),
                 ],
               ),
-              
+
               // Botón Descartar - Animado desde el centro hacia la izquierda
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 550),
                 curve: Curves.easeOutBack,
-                left: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                left:
+                    _isRecording
+                        ? MediaQuery.of(context).size.width / 2 - 132
+                        : MediaQuery.of(context).size.width / 2 - 40,
                 child: AnimatedScale(
                   scale: _isRecording ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 550),
@@ -421,12 +429,15 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   ),
                 ),
               ),
-              
+
               // Botón Detener - Animado desde el centro hacia la derecha
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 550),
                 curve: Curves.easeOutBack,
-                right: _isRecording ? MediaQuery.of(context).size.width / 2 - 132 : MediaQuery.of(context).size.width / 2 - 40,
+                right:
+                    _isRecording
+                        ? MediaQuery.of(context).size.width / 2 - 132
+                        : MediaQuery.of(context).size.width / 2 - 40,
                 child: AnimatedScale(
                   scale: _isRecording ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 550),
@@ -444,7 +455,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       ),
                       child: IconButton(
                         onPressed: _stopRecording,
-                        icon: const Icon(Icons.stop, color: Colors.red, size: 42),
+                        icon: const Icon(
+                          Icons.stop,
+                          color: Colors.red,
+                          size: 42,
+                        ),
                         padding: EdgeInsets.zero,
                       ),
                     ),
@@ -471,7 +486,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Color.fromARGB(255,228,228,228),
+                    color: Color.fromARGB(255, 228, 228, 228),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
