@@ -100,7 +100,7 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<Paciente>(
-              initialValue: _pacienteSeleccionado,
+              value: _pacienteSeleccionado,
               dropdownColor: Colors.white,
               items:
                   _pacientes.map((paciente) {

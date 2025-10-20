@@ -287,6 +287,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       _isPaused = false;
       _seconds = 0;
     });
+  }
+
   Future<void> _confirmDiscardRecording() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -413,8 +415,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       Icon(
                         _isPaused ? Icons.pause : Icons.fiber_manual_record,
                         color: _isPaused ? Colors.black : Colors.red,
-                        Icons.fiber_manual_record,
-                        color: (!_isRecording || _isPaused) ? Colors.orange : Colors.red,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
