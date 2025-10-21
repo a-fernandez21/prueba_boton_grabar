@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'audio_recorder_screen.dart';
+import 'recording_placeholder_screen.dart';
 import '../models/paciente.dart';
 
 class GrabadoraScreen extends StatefulWidget {
@@ -13,9 +14,11 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
   Paciente? _pacienteSeleccionado;
   String? _tipoGrabacionSeleccionado;
 
-  void _navegarAGrabacion() {
+  void _navegarAGrabacion() async {
     if (_pacienteSeleccionado != null && _tipoGrabacionSeleccionado != null) {
-      Navigator.push(
+      // Navegar a la pantalla de grabación
+      // El placeholder se mostrará automáticamente cuando se minimice
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder:
