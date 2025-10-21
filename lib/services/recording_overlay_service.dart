@@ -260,74 +260,76 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                // Ondas de audio a la izquierda
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    _waveHeights.length,
-                    (index) => Container(
-                      width: 3,
-                      height: 20 * _waveHeights[index],
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(2),
+                  // Ondas de audio a la izquierda
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _waveHeights.length,
+                      (index) => Container(
+                        width: 3,
+                        height: 20 * _waveHeights[index],
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Tiempo de grabación a la izquierda del botón de detener
-                Row(
-                  children: [
-                    Icon(
-                      service.isPaused
-                          ? Icons.pause
-                          : Icons.fiber_manual_record,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      service.formatTime(service.seconds),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Botón de pausar/reanudar a la derecha
-                GestureDetector(
-                  onTap: () async {
-                    if (service.isPaused) {
-                      await service.resumeRecording();
-                    } else {
-                      await service.pauseRecording();
-                    }
-                  },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color:
-                          service.isPaused
-                              ? Colors.orange
-                              : const Color.fromARGB(255, 87, 226, 224),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Icon(
-                      service.isPaused ? Icons.mic : Icons.pause,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                  // Icono de estado de grabación
+                  Icon(
+                    service.isPaused
+                        ? Icons.pause
+                        : Icons.fiber_manual_record,
+                    color: Colors.white,
+                    size: 16,
                   ),
-                ),
-              ],
-            ),
+
+                  // Sección derecha: Duración y botón
+                  Row(
+                    children: [
+                      // Duración a la izquierda del botón
+                      Text(
+                        service.formatTime(service.seconds),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Botón de pausar/reanudar
+                      GestureDetector(
+                        onTap: () async {
+                          if (service.isPaused) {
+                            await service.resumeRecording();
+                          } else {
+                            await service.pauseRecording();
+                          }
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color:
+                                service.isPaused
+                                    ? Colors.orange
+                                    : const Color.fromARGB(255, 87, 226, 224),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Icon(
+                            service.isPaused ? Icons.mic : Icons.pause,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
           ),
           ),
         );
