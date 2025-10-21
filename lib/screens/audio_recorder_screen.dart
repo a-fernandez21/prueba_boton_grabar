@@ -43,7 +43,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     super.initState();
     _initRecorder();
     _overlayService.setInAudioScreen(true);
-    
+
     // Restaurar el estado si ya hay una grabación en curso
     _restoreRecordingState();
   }
@@ -57,19 +57,21 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     // Si el servicio de overlay indica que hay una grabación en curso, restaurar el estado
     if (_overlayService.isRecording) {
       print('🔄 Restaurando estado de grabación...');
-      print('📊 Estado del recorder: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}');
-      
+      print(
+        '📊 Estado del recorder: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}',
+      );
+
       setState(() {
         _isRecording = true;
         _isPaused = _overlayService.isPaused;
         _seconds = _overlayService.seconds;
         _audioMarks = List.from(_overlayService.audioMarks);
       });
-      
+
       // SIEMPRE iniciar el timer (el timer ya verifica _isPaused internamente)
       print('⏱️ Iniciando timer (verifica pausado internamente)');
       _startTimer();
-      
+
       // Solo iniciar animación de ondas si NO está pausado
       if (!_isPaused) {
         print('▶️ Iniciando animación de ondas (no pausado)');
@@ -77,8 +79,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       } else {
         print('⏸️ Estado pausado - no iniciar animación');
       }
-      
-      print('✅ Estado restaurado: grabando=$_isRecording, pausado=$_isPaused, segundos=$_seconds, marcas=${_audioMarks.length}');
+
+      print(
+        '✅ Estado restaurado: grabando=$_isRecording, pausado=$_isPaused, segundos=$_seconds, marcas=${_audioMarks.length}',
+      );
     }
   }
 
@@ -99,30 +103,32 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
   void _startWaveAnimation() {
     print('🌊 Intentando iniciar animación de ondas...');
-    print('📊 Recorder state: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}');
-    
+    print(
+      '📊 Recorder state: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}',
+    );
+
     // Cancelar cualquier suscripción anterior
     if (_recorderSubscription != null) {
       print('🔄 Cancelando suscripción anterior...');
       _recorderSubscription?.cancel();
       _recorderSubscription = null;
     }
-    
+
     // Verificar que el recorder esté grabando
     if (!_audioService.recorder.isRecording) {
       print('⚠️ Recorder no está grabando - no se puede iniciar animación');
       return;
     }
-    
+
     // Verificar que el recorder tenga el stream disponible
     final stream = _audioService.recorder.onProgress;
     if (stream == null) {
       print('⚠️ Stream de progreso no disponible');
       return;
     }
-    
+
     print('✅ Stream disponible, creando suscripción...');
-    
+
     // Suscribirse al stream de amplitud del grabador
     _recorderSubscription = stream.listen(
       (e) {
@@ -169,7 +175,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         print('🏁 Stream de ondas finalizado');
       },
     );
-    
+
     print('✅ Suscripción a ondas completada');
   }
 
@@ -292,7 +298,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       _audioMarks.add(timeStamp);
     });
-    
+
     // Actualizar marcas en el servicio
     _overlayService.updateAudioMarks(_audioMarks);
 
@@ -333,7 +339,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       setState(() {
         _audioMarks.removeAt(index);
       });
-      
+
       // Actualizar marcas en el servicio
       _overlayService.updateAudioMarks(_audioMarks);
 
@@ -361,6 +367,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       _isPaused = false;
       _seconds = 0;
     });
+  }
+
   Future<void> _confirmDiscardRecording() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -415,7 +423,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
 
   void _minimizeRecording() {
     print('📱 Minimizando grabación...');
-    
+
     // Marcar que salimos de la pantalla de audio y pasar el tiempo actual Y LAS MARCAS
     _overlayService.setInAudioScreen(
       false,
@@ -425,7 +433,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       widget.tipoGrabacion,
       _audioMarks,
     );
-    
+
     print('🔄 Reemplazando con pantalla placeholder');
     // Reemplazar la pantalla actual con la placeholder
     // Esto mantiene el widget flotante visible y la grabación activa
@@ -503,9 +511,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                     children: [
                       Icon(
                         _isPaused ? Icons.pause : Icons.fiber_manual_record,
-                        color: _isPaused ? Colors.black : Colors.red,
-                        Icons.fiber_manual_record,
-                        color: (!_isRecording || _isPaused) ? Colors.orange : Colors.red,
+                        color:
+                            (!_isRecording || _isPaused)
+                                ? Colors.orange
+                                : Colors.red,
                         size: 16,
                       ),
                       const SizedBox(width: 6),
@@ -559,8 +568,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         ),
                       ),
                     ),
+
                     // Marcadores de audio
-                    
                   ],
                 ),
 
@@ -658,7 +667,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed:
                             _isRecording
-                                ? (_isPaused ? _confirmDiscardRecording : _addMark)
+                                ? (_isPaused
+                                    ? _confirmDiscardRecording
+                                    : _addMark)
                                 : null,
                         icon: Icon(
                           _isPaused ? Icons.close : Icons.bookmark_add,
@@ -878,7 +889,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                     ),
                                                     IconButton(
                                                       onPressed:
-                                                          () => _confirmRemoveMark(i),
+                                                          () =>
+                                                              _confirmRemoveMark(
+                                                                i,
+                                                              ),
                                                       icon: const Icon(
                                                         Icons.delete_outline,
                                                         color: Colors.red,
@@ -931,9 +945,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                       ),
                                                       IconButton(
                                                         onPressed:
-                                                            () => _confirmRemoveMark(
-                                                              i + 1,
-                                                            ),
+                                                            () =>
+                                                                _confirmRemoveMark(
+                                                                  i + 1,
+                                                                ),
                                                         icon: const Icon(
                                                           Icons.delete_outline,
                                                           color: Colors.red,
