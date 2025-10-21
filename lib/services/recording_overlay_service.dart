@@ -59,27 +59,24 @@ class RecordingOverlayService {
     List<String>? audioMarks,
   ]) {
     _isInAudioScreen = inAudioScreen;
+
     if (inAudioScreen) {
       hideOverlay();
-    } else if (_isRecording && context != null) {
-      if (currentSeconds != null) {
-        _seconds = currentSeconds;
-      }
-      // Guardar los datos del paciente y tipo de grabación para poder navegar de vuelta
-      if (paciente != null) {
-        _paciente = paciente;
-      }
-      if (tipoGrabacion != null) {
-        _tipoGrabacion = tipoGrabacion;
-      }
-      // Guardar las marcas de audio
-      if (audioMarks != null) {
-        _audioMarks = List.from(audioMarks);
-      }
-      showOverlay(context);
-      // Iniciar el timer del overlay cuando se minimiza
-      _startOverlayTimer();
+      return;
     }
+
+    if (!_isRecording || context == null) return;
+
+    // Actualizar estado en una sola pasada
+    _seconds = currentSeconds ?? _seconds;
+    _paciente = paciente ?? _paciente;
+    _tipoGrabacion = tipoGrabacion ?? _tipoGrabacion;
+    if (audioMarks != null) {
+      _audioMarks = List.from(audioMarks);
+    }
+
+    showOverlay(context);
+    _startOverlayTimer();
   }
 
   void showOverlay(BuildContext? context) {
@@ -185,6 +182,42 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
     super.dispose();
   }
 
+  void _updateWaveHeights(RecordingOverlayService service) {
+    if (service.isRecording && !service.isPaused) {
+      final animValue = _waveController.value * 2 * pi;
+      final sinValue = sin(animValue);
+
+      for (int i = 0; i < _waveHeights.length; i++) {
+        _waveHeights[i] =
+            0.1 +
+            (0.9 *
+                (0.5 + 0.5 * (i % 2 == 0 ? 1 : -1) * (0.5 + 0.5 * sinValue)));
+      }
+    } else {
+      _waveHeights = List.filled(8, 0.1);
+    }
+  }
+
+  Future<void> _navigateToRecordingScreen(
+    BuildContext context,
+    RecordingOverlayService service,
+  ) async {
+    if (service._paciente == null || service._tipoGrabacion == null) return;
+
+    service.hideOverlay();
+    service.setInAudioScreen(true);
+
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder:
+            (context) => AudioRecorderScreen(
+              paciente: service._paciente!,
+              tipoGrabacion: service._tipoGrabacion!,
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final service = RecordingOverlayService();
@@ -192,60 +225,15 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
     return AnimatedBuilder(
       animation: _waveController,
       builder: (context, child) {
-        // Actualizar alturas de ondas solo si está grabando y no pausado
-        if (service.isRecording && !service.isPaused) {
-          for (int i = 0; i < _waveHeights.length; i++) {
-            _waveHeights[i] =
-                0.1 +
-                (0.9 *
-                    (0.5 +
-                        0.5 *
-                            (i % 2 == 0 ? 1 : -1) *
-                            (0.5 +
-                                0.5 *
-                                    sin(_waveController.value * 2 * 3.14159))));
-          }
-        } else {
-          // Mantener ondas estáticas cuando está pausado
-          _waveHeights = List.generate(8, (_) => 0.1);
-        }
+        _updateWaveHeights(service);
 
         return GestureDetector(
-          onTap: () async {
-            print('🔔 Widget flotante tocado');
-            
-            if (service._paciente != null && service._tipoGrabacion != null) {
-              print('� Navegando de vuelta a la pantalla de grabación');
-              
-              // Ocultar el overlay primero
-              service.hideOverlay();
-              
-              // Marcar que estamos en la pantalla de audio
-              service.setInAudioScreen(true);
-              
-              // Navegar a la pantalla de grabación
-              await Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (context) => AudioRecorderScreen(
-                    paciente: service._paciente!,
-                    tipoGrabacion: service._tipoGrabacion!,
-                  ),
-                ),
-              );
-              
-              print('↩️ Volvió de la pantalla de grabación');
-            } else {
-              print('❌ No hay datos guardados para navegar');
-            }
-          },
+          onTap: () => _navigateToRecordingScreen(context, service),
           child: Container(
             width: double.infinity,
             height: 80,
             decoration: BoxDecoration(
-              color:
-                  service.isPaused
-                      ? Colors.orange
-                      : Colors.cyan,
+              color: service.isPaused ? Colors.orange : Colors.cyan,
               borderRadius: BorderRadius.circular(40),
               boxShadow: [
                 BoxShadow(
@@ -260,75 +248,75 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                // Ondas de audio a la izquierda
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    _waveHeights.length,
-                    (index) => Container(
-                      width: 3,
-                      height: 20 * _waveHeights[index],
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(2),
+                  // Ondas de audio a la izquierda
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _waveHeights.length,
+                      (index) => Container(
+                        width: 3,
+                        height: 20 * _waveHeights[index],
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Tiempo de grabación a la izquierda del botón de detener
-                Row(
-                  children: [
-                    Icon(
-                      service.isPaused
-                          ? Icons.pause
-                          : Icons.fiber_manual_record,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      service.formatTime(service.seconds),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Botón de pausar/reanudar a la derecha
-                GestureDetector(
-                  onTap: () async {
-                    if (service.isPaused) {
-                      await service.resumeRecording();
-                    } else {
-                      await service.pauseRecording();
-                    }
-                  },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color:
-                          service.isPaused
-                              ? Colors.orange
-                              : const Color.fromARGB(255, 87, 226, 224),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Icon(
-                      service.isPaused ? Icons.mic : Icons.pause,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                  // Icono de estado de grabación
+                  Icon(
+                    service.isPaused ? Icons.pause : Icons.fiber_manual_record,
+                    color: Colors.white,
+                    size: 16,
                   ),
-                ),
-              ],
+
+                  // Sección derecha: Duración y botón
+                  Row(
+                    children: [
+                      // Duración a la izquierda del botón
+                      Text(
+                        service.formatTime(service.seconds),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Botón de pausar/reanudar
+                      GestureDetector(
+                        onTap: () async {
+                          if (service.isPaused) {
+                            await service.resumeRecording();
+                          } else {
+                            await service.pauseRecording();
+                          }
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color:
+                                service.isPaused
+                                    ? Colors.orange
+                                    : const Color.fromARGB(255, 87, 226, 224),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Icon(
+                            service.isPaused ? Icons.mic : Icons.pause,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
           ),
         );
       },
