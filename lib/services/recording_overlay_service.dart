@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'audio_recorder_service.dart';
+import '../models/paciente.dart';
+import '../screens/audio_recorder_screen.dart';
 
 class RecordingOverlayService {
   static final RecordingOverlayService _instance =
@@ -16,10 +18,14 @@ class RecordingOverlayService {
   AudioRecorderService? _audioService;
   int _seconds = 0;
   Timer? _timer;
+  Paciente? _paciente;
+  String? _tipoGrabacion;
+  List<String> _audioMarks = [];
 
   bool get isRecording => _isRecording;
   bool get isPaused => _isPaused;
   int get seconds => _seconds;
+  List<String> get audioMarks => _audioMarks;
 
   void setAudioService(AudioRecorderService audioService) {
     _audioService = audioService;
@@ -48,6 +54,9 @@ class RecordingOverlayService {
     bool inAudioScreen, [
     BuildContext? context,
     int? currentSeconds,
+    Paciente? paciente,
+    String? tipoGrabacion,
+    List<String>? audioMarks,
   ]) {
     _isInAudioScreen = inAudioScreen;
     if (inAudioScreen) {
@@ -55,6 +64,17 @@ class RecordingOverlayService {
     } else if (_isRecording && context != null) {
       if (currentSeconds != null) {
         _seconds = currentSeconds;
+      }
+      // Guardar los datos del paciente y tipo de grabación para poder navegar de vuelta
+      if (paciente != null) {
+        _paciente = paciente;
+      }
+      if (tipoGrabacion != null) {
+        _tipoGrabacion = tipoGrabacion;
+      }
+      // Guardar las marcas de audio
+      if (audioMarks != null) {
+        _audioMarks = List.from(audioMarks);
       }
       showOverlay(context);
       // Iniciar el timer del overlay cuando se minimiza
@@ -67,32 +87,34 @@ class RecordingOverlayService {
 
     _overlayEntry = OverlayEntry(
       builder:
-          (_) => Positioned(
+          (overlayContext) => Positioned(
             top: 50,
             left: 20,
             right: 20,
-            child: _FloatingRecordingWidget(),
+            child: const _FloatingRecordingWidget(),
           ),
     );
 
     final overlay = Overlay.of(context);
-    if (overlay != null) {
-      overlay.insert(_overlayEntry!);
-    }
+    overlay.insert(_overlayEntry!);
   }
 
   void hideOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _stopOverlayTimer();
-    _isRecording = false;
-    _isPaused = false;
+    // NO resetear _isRecording ni _isPaused aquí
+    // Esos estados se resetean solo cuando se detiene la grabación completamente
   }
 
   void startRecording() {
     _isRecording = true;
     _isPaused = false;
     _overlayEntry?.markNeedsBuild();
+  }
+
+  void updateAudioMarks(List<String> marks) {
+    _audioMarks = List.from(marks);
   }
 
   String formatTime(int seconds) {
@@ -136,6 +158,8 @@ class RecordingOverlayService {
 }
 
 class _FloatingRecordingWidget extends StatefulWidget {
+  const _FloatingRecordingWidget();
+
   @override
   State<_FloatingRecordingWidget> createState() =>
       _FloatingRecordingWidgetState();
@@ -186,28 +210,56 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
           _waveHeights = List.generate(8, (_) => 0.1);
         }
 
-        return Container(
-          width: double.infinity,
-          height: 80,
-          decoration: BoxDecoration(
-            color:
-                service.isPaused
-                    ? Colors.orange
-                    : const Color.fromARGB(255, 87, 226, 224),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+        return GestureDetector(
+          onTap: () async {
+            print('🔔 Widget flotante tocado');
+            
+            if (service._paciente != null && service._tipoGrabacion != null) {
+              print('� Navegando de vuelta a la pantalla de grabación');
+              
+              // Ocultar el overlay primero
+              service.hideOverlay();
+              
+              // Marcar que estamos en la pantalla de audio
+              service.setInAudioScreen(true);
+              
+              // Navegar a la pantalla de grabación
+              await Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (context) => AudioRecorderScreen(
+                    paciente: service._paciente!,
+                    tipoGrabacion: service._tipoGrabacion!,
+                  ),
+                ),
+              );
+              
+              print('↩️ Volvió de la pantalla de grabación');
+            } else {
+              print('❌ No hay datos guardados para navegar');
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            height: 80,
+            decoration: BoxDecoration(
+              color:
+                  service.isPaused
+                      ? Colors.orange
+                      : Colors.cyan,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                 // Ondas de audio a la izquierda
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -276,6 +328,7 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
                 ),
               ],
             ),
+          ),
           ),
         );
       },

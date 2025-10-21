@@ -4,8 +4,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import '../constants/app_constants.dart';
 
-/// Servicio para gestionar grabaciones de audio
+/// Servicio para gestionar grabaciones de audio (Singleton)
 class AudioRecorderService {
+  // Singleton
+  static final AudioRecorderService _instance = AudioRecorderService._internal();
+  factory AudioRecorderService() => _instance;
+  AudioRecorderService._internal();
+  
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   bool _isInitialized = false;
   String? _currentRecordingPath;

@@ -4,6 +4,7 @@ import '../constants/app_constants.dart';
 import '../models/paciente.dart';
 import '../services/audio_recorder_service.dart';
 import '../services/recording_overlay_service.dart';
+import 'recording_placeholder_screen.dart';
 
 class AudioRecorderScreen extends StatefulWidget {
   final Paciente paciente;
@@ -42,13 +43,47 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     super.initState();
     _initRecorder();
     _overlayService.setInAudioScreen(true);
-    // No iniciar grabación automáticamente
-    // _startRecordingAutomatically();
+
+    // Restaurar el estado si ya hay una grabación en curso
+    _restoreRecordingState();
   }
 
   Future<void> _initRecorder() async {
     await _audioService.initialize();
     _overlayService.setAudioService(_audioService);
+  }
+
+  void _restoreRecordingState() {
+    // Si el servicio de overlay indica que hay una grabación en curso, restaurar el estado
+    if (_overlayService.isRecording) {
+      print('🔄 Restaurando estado de grabación...');
+      print(
+        '📊 Estado del recorder: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}',
+      );
+
+      setState(() {
+        _isRecording = true;
+        _isPaused = _overlayService.isPaused;
+        _seconds = _overlayService.seconds;
+        _audioMarks = List.from(_overlayService.audioMarks);
+      });
+
+      // SIEMPRE iniciar el timer (el timer ya verifica _isPaused internamente)
+      print('⏱️ Iniciando timer (verifica pausado internamente)');
+      _startTimer();
+
+      // Solo iniciar animación de ondas si NO está pausado
+      if (!_isPaused) {
+        print('▶️ Iniciando animación de ondas (no pausado)');
+        _startWaveAnimation();
+      } else {
+        print('⏸️ Estado pausado - no iniciar animación');
+      }
+
+      print(
+        '✅ Estado restaurado: grabando=$_isRecording, pausado=$_isPaused, segundos=$_seconds, marcas=${_audioMarks.length}',
+      );
+    }
   }
 
   void _startTimer() {
@@ -67,42 +102,81 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _startWaveAnimation() {
+    print('🌊 Intentando iniciar animación de ondas...');
+    print(
+      '📊 Recorder state: isRecording=${_audioService.recorder.isRecording}, isPaused=${_audioService.recorder.isPaused}',
+    );
+
+    // Cancelar cualquier suscripción anterior
+    if (_recorderSubscription != null) {
+      print('🔄 Cancelando suscripción anterior...');
+      _recorderSubscription?.cancel();
+      _recorderSubscription = null;
+    }
+
+    // Verificar que el recorder esté grabando
+    if (!_audioService.recorder.isRecording) {
+      print('⚠️ Recorder no está grabando - no se puede iniciar animación');
+      return;
+    }
+
+    // Verificar que el recorder tenga el stream disponible
+    final stream = _audioService.recorder.onProgress;
+    if (stream == null) {
+      print('⚠️ Stream de progreso no disponible');
+      return;
+    }
+
+    print('✅ Stream disponible, creando suscripción...');
+
     // Suscribirse al stream de amplitud del grabador
-    _recorderSubscription = _audioService.recorder.onProgress?.listen((e) {
-      if (!_isPaused && mounted) {
-        // flutter_sound reporta valores POSITIVOS en el rango 0-120 dB
-        // donde valores bajos = silencio y valores altos = sonido fuerte
-        final decibels = e.decibels ?? 0.0;
+    _recorderSubscription = stream.listen(
+      (e) {
+        if (!_isPaused && mounted) {
+          // flutter_sound reporta valores POSITIVOS en el rango 0-120 dB
+          // donde valores bajos = silencio y valores altos = sonido fuerte
+          final decibels = e.decibels ?? 0.0;
 
-        // Normalizar a un rango de 0.05 a 1.0 usando la escala positiva
-        // 0-45 dB = silencio/ruido ambiente → 0.05 (ondas casi invisibles)
-        // 65+ dB = voz muy fuerte → 1.0 (ondas al máximo)
-        double normalizedAmplitude;
+          // Normalizar a un rango de 0.05 a 1.0 usando la escala positiva
+          // 0-45 dB = silencio/ruido ambiente → 0.05 (ondas casi invisibles)
+          // 65+ dB = voz muy fuerte → 1.0 (ondas al máximo)
+          double normalizedAmplitude;
 
-        if (decibels <= 45) {
-          // Silencio o ruido ambiente bajo
-          normalizedAmplitude = 0.05;
-        } else if (decibels >= 65) {
-          // Voz fuerte
-          normalizedAmplitude = 1.0;
-        } else {
-          // Interpolación lineal entre 45 y 65 dB (rango de 20 dB)
-          normalizedAmplitude = 0.05 + ((decibels - 45) / 20) * 0.95;
+          if (decibels <= 45) {
+            // Silencio o ruido ambiente bajo
+            normalizedAmplitude = 0.05;
+          } else if (decibels >= 65) {
+            // Voz fuerte
+            normalizedAmplitude = 1.0;
+          } else {
+            // Interpolación lineal entre 45 y 65 dB (rango de 20 dB)
+            normalizedAmplitude = 0.05 + ((decibels - 45) / 20) * 0.95;
+          }
+
+          // Debug detallado (solo cada 10 eventos para no saturar)
+          if (_waveHeights.length % 10 == 0) {
+            print(
+              '🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px',
+            );
+          }
+
+          setState(() {
+            _currentAmplitude = normalizedAmplitude;
+            // Rotar las ondas y agregar la nueva amplitud
+            _waveHeights.removeAt(0);
+            _waveHeights.add(normalizedAmplitude);
+          });
         }
+      },
+      onError: (error) {
+        print('❌ Error en stream de ondas: $error');
+      },
+      onDone: () {
+        print('🏁 Stream de ondas finalizado');
+      },
+    );
 
-        // Debug detallado
-        print(
-          '🎤 dB: $decibels → Amplitud: ${normalizedAmplitude.toStringAsFixed(2)} → Altura: ${(60 * normalizedAmplitude).toStringAsFixed(1)}px',
-        );
-
-        setState(() {
-          _currentAmplitude = normalizedAmplitude;
-          // Rotar las ondas y agregar la nueva amplitud
-          _waveHeights.removeAt(0);
-          _waveHeights.add(normalizedAmplitude);
-        });
-      }
-    });
+    print('✅ Suscripción a ondas completada');
   }
 
   void _stopWaveAnimation() {
@@ -225,6 +299,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       _audioMarks.add(timeStamp);
     });
 
+    // Actualizar marcas en el servicio
+    _overlayService.updateAudioMarks(_audioMarks);
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -262,6 +339,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
       setState(() {
         _audioMarks.removeAt(index);
       });
+
+      // Actualizar marcas en el servicio
+      _overlayService.updateAudioMarks(_audioMarks);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -342,10 +422,27 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   }
 
   void _minimizeRecording() {
-    // Marcar que salimos de la pantalla de audio y pasar el tiempo actual
-    _overlayService.setInAudioScreen(false, context, _seconds);
-    // Volver a la pantalla anterior sin detener la grabación
-    Navigator.pop(context);
+    print('📱 Minimizando grabación...');
+
+    // Marcar que salimos de la pantalla de audio y pasar el tiempo actual Y LAS MARCAS
+    _overlayService.setInAudioScreen(
+      false,
+      context,
+      _seconds,
+      widget.paciente,
+      widget.tipoGrabacion,
+      _audioMarks,
+    );
+
+    print('🔄 Reemplazando con pantalla placeholder');
+    // Reemplazar la pantalla actual con la placeholder
+    // Esto mantiene el widget flotante visible y la grabación activa
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RecordingPlaceholderScreen(),
+      ),
+    );
   }
 
   @override
@@ -468,8 +565,8 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                         ),
                       ),
                     ),
+
                     // Marcadores de audio
-                    
                   ],
                 ),
 
@@ -567,7 +664,9 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                       child: IconButton(
                         onPressed:
                             _isRecording
-                                ? (_isPaused ? _confirmDiscardRecording : _addMark)
+                                ? (_isPaused
+                                    ? _confirmDiscardRecording
+                                    : _addMark)
                                 : null,
                         icon: Icon(
                           _isPaused ? Icons.close : Icons.bookmark_add,
@@ -787,7 +886,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                     ),
                                                     IconButton(
                                                       onPressed:
-                                                          () => _confirmRemoveMark(i),
+                                                          () =>
+                                                              _confirmRemoveMark(
+                                                                i,
+                                                              ),
                                                       icon: const Icon(
                                                         Icons.delete_outline,
                                                         color: Colors.red,
@@ -840,9 +942,10 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
                                                       ),
                                                       IconButton(
                                                         onPressed:
-                                                            () => _confirmRemoveMark(
-                                                              i + 1,
-                                                            ),
+                                                            () =>
+                                                                _confirmRemoveMark(
+                                                                  i + 1,
+                                                                ),
                                                         icon: const Icon(
                                                           Icons.delete_outline,
                                                           color: Colors.red,
