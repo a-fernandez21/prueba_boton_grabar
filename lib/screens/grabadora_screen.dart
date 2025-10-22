@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'audio_recorder_screen.dart';
 import '../models/paciente.dart';
-import '../widgets/recording_widgets.dart';
+import '../widgets/audio_recorder_widgets.dart';
 
 class GrabadoraScreen extends StatefulWidget {
   const GrabadoraScreen({super.key});
