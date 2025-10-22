@@ -561,11 +561,12 @@ class _AudioMarkItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(218, 0, 225, 255),
+        color: Colors.lightBlueAccent.withOpacity(0.25),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
+          Icon(Icons.bookmark, color: Colors.blue, size: 20),
           Align(
             alignment: Alignment.centerLeft,
             child: Padding(
@@ -575,6 +576,7 @@ class _AudioMarkItem extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
               ),
             ),
