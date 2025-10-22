@@ -135,6 +135,9 @@ class RecordingOverlayService {
     _isPaused = false;
     _stopOverlayTimer();
     _seconds = 0;
+    _audioMarks.clear();
+    _paciente = null;
+    _tipoGrabacion = null;
     _overlayEntry?.markNeedsBuild();
   }
 

@@ -244,6 +244,7 @@ class AudioRecorderController extends ChangeNotifier {
     _isPaused = false;
     _seconds = 0;
     _audioMarks.clear();
+    _waveHeights = List.generate(70, (_) => 0.1);
     notifyListeners();
 
     return result.message;
@@ -254,11 +255,13 @@ class AudioRecorderController extends ChangeNotifier {
     _stopTimer();
     _stopWaveAnimation();
     await _audioService.stopRecording();
+    _overlayService.stopRecording();
 
     _isRecording = false;
     _isPaused = false;
     _seconds = 0;
     _audioMarks.clear();
+    _waveHeights = List.generate(70, (_) => 0.1);
     notifyListeners();
   }
 
