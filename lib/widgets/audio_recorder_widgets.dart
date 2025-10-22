@@ -397,6 +397,7 @@ class PatientInfoCard extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color.fromARGB(255, 228, 228, 228),
@@ -405,9 +406,7 @@ class PatientInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInfoRow('Nombre', paciente.nombre),
-              const SizedBox(height: 8),
-              _buildInfoRow('ID', paciente.id),
+              _buildInfoRow('Paciente', paciente.nombreCompleto),
               const SizedBox(height: 8),
               _buildInfoRow('Edad', '${paciente.edad}'),
               const SizedBox(height: 8),
