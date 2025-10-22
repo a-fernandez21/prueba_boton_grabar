@@ -4,6 +4,7 @@ import '../constants/app_constants.dart';
 import '../models/paciente.dart';
 import '../services/audio_recorder_service.dart';
 import '../services/recording_overlay_service.dart';
+import '../widgets/audio_recorder_widgets.dart';
 import 'recording_placeholder_screen.dart';
 
 class AudioRecorderScreen extends StatefulWidget {
@@ -33,7 +34,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
   // Visualizador de ondas basado en amplitud real
   StreamSubscription? _recorderSubscription;
   List<double> _waveHeights = List.generate(70, (_) => 0.1);
-  double _currentAmplitude = 0.0;
 
   // Marcas en el audio
   List<String> _audioMarks = [];
@@ -161,7 +161,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
           }
 
           setState(() {
-            _currentAmplitude = normalizedAmplitude;
             // Rotar las ondas y agregar la nueva amplitud
             _waveHeights.removeAt(0);
             _waveHeights.add(normalizedAmplitude);
@@ -185,7 +184,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     setState(() {
       // Resetear ondas a silencio
       _waveHeights = List.generate(50, (_) => 0.1);
-      _currentAmplitude = 0.0;
     });
   }
 
@@ -270,7 +268,7 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     if (confirmed == true) {
       _stopTimer();
       _stopWaveAnimation();
-      final result = await _audioService.stopRecording();
+      await _audioService.stopRecording();
       setState(() {
         _isRecording = false;
         _isPaused = false;
@@ -353,20 +351,6 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
         );
       }
     }
-  }
-
-  Future<void> _discardRecording() async {
-    // Detener la grabación sin guardar
-    _stopTimer();
-    _stopWaveAnimation();
-    await _audioService.stopRecording();
-    _overlayService.stopRecording();
-
-    setState(() {
-      _isRecording = false;
-      _isPaused = false;
-      _seconds = 0;
-    });
   }
 
   Future<void> _confirmDiscardRecording() async {
@@ -460,129 +444,14 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Sección superior (gris inicial/pausado, cyan cuando graba)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(
-              top: 60,
-              left: 24,
-              right: 24,
-              bottom: 16,
-            ),
-            color: _isRecording && !_isPaused ? Colors.cyan : Colors.grey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Botón minimizar en la esquina superior derecha
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _minimizeRecording,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Text('Minimizar', style: TextStyle(fontSize: 12)),
-                          SizedBox(width: 4),
-                          Icon(Icons.logout, size: 16),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // Estado: Grabando/Pausado centrado
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _isPaused ? Icons.pause : Icons.fiber_manual_record,
-                        color: _isPaused ? Colors.black : Colors.red,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        (!_isRecording || _isPaused) ? 'Pausado' : 'Grabando',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Cronómetro centrado
-                Center(
-                  child: Text(
-                    _formatTime(_seconds),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Visualizador de ondas de audio
-                Stack(
-                  children: [
-                    Container(
-                      height: 60,
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: List.generate(
-                          _waveHeights.length,
-                          (index) => Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 1),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              height: 70 * _waveHeights[index],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Marcadores de audio
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // Tipo de grabación
-                Text(
-                  widget.tipoGrabacion,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+          // Sección superior usando RecordingHeader
+          RecordingHeader(
+            isRecording: _isRecording,
+            isPaused: _isPaused,
+            seconds: _seconds,
+            waveHeights: _waveHeights,
+            tipoGrabacion: widget.tipoGrabacion,
+            onMinimize: _minimizeRecording,
           ),
 
           const SizedBox(height: 16),
@@ -591,132 +460,21 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
           const SizedBox(height: 24),
 
           // Botones de control
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Row para mantener el layout
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Espacio para botón izquierdo
-                  SizedBox(width: _isRecording ? 48 : 0),
-                  SizedBox(width: _isRecording ? 24 : 0),
-                  // Botón central siempre visible
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color:
-                          _isRecording && !_isPaused
-                              ? Color.fromARGB(255, 228, 228, 228)
-                              : const Color(0xFF00BBDA),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        if (!_isRecording) {
-                          _startRecording();
-                        } else if (_isPaused) {
-                          _resumeRecording();
-                        } else {
-                          _pauseRecording();
-                        }
-                      },
-                      icon: Icon(
-                        (!_isRecording || _isPaused) ? Icons.mic : Icons.pause,
-                        color:
-                            (!_isRecording || _isPaused)
-                                ? Colors.white
-                                : Colors.black,
-                        size: 60,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: _isRecording ? 24 : 0),
-                  SizedBox(width: _isRecording ? 48 : 0),
-                ],
-              ),
-
-              // Botón Descartar - Animado desde el centro hacia la izquierda
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 550),
-                curve: Curves.easeOutBack,
-                left:
-                    _isRecording
-                        ? MediaQuery.of(context).size.width / 2 - 132
-                        : MediaQuery.of(context).size.width / 2 - 40,
-                child: AnimatedScale(
-                  scale: _isRecording ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 550),
-                  curve: Curves.easeOutBack,
-                  child: AnimatedOpacity(
-                    opacity: _isRecording ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 450),
-                    curve: Curves.easeOutBack,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 228, 228, 228),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed:
-                            _isRecording
-                                ? (_isPaused
-                                    ? _confirmDiscardRecording
-                                    : _addMark)
-                                : null,
-                        icon: Icon(
-                          _isPaused ? Icons.close : Icons.bookmark_add,
-                          color: _isPaused ? Colors.red : Colors.blue,
-                          size: 42,
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Botón Detener - Animado desde el centro hacia la derecha
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 550),
-                curve: Curves.easeOutBack,
-                right:
-                    _isRecording
-                        ? MediaQuery.of(context).size.width / 2 - 132
-                        : MediaQuery.of(context).size.width / 2 - 40,
-                child: AnimatedScale(
-                  scale: _isRecording ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 550),
-                  curve: Curves.easeOutBack,
-                  child: AnimatedOpacity(
-                    opacity: _isRecording ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 450),
-                    curve: Curves.easeOutBack,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 228, 228, 228),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: _isPaused ? _confirmStopRecording : null,
-                        icon: Icon(
-                          Icons.check,
-                          color: _isPaused ? Colors.green : Colors.grey,
-                          size: 42,
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          RecordingControlButtons(
+            isRecording: _isRecording,
+            isPaused: _isPaused,
+            onRecordOrPause: () {
+              if (!_isRecording) {
+                _startRecording();
+              } else if (_isPaused) {
+                _resumeRecording();
+              } else {
+                _pauseRecording();
+              }
+            },
+            onStop: _confirmStopRecording,
+            onAddMark: _addMark,
+            onDiscard: _confirmDiscardRecording,
           ),
 
           const SizedBox(height: 32),
@@ -728,245 +486,11 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Ficha del paciente',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                  PatientInfoCard(paciente: widget.paciente),
                   const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 228, 228, 228),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text.rich(
-                          TextSpan(
-                            text: 'Paciente: ',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                            children: [
-                              TextSpan(
-                                text: widget.paciente.nombreCompleto,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text.rich(
-                          TextSpan(
-                            text: 'Edad: ',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                            children: [
-                              TextSpan(
-                                text: '${widget.paciente.edad}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text.rich(
-                          TextSpan(
-                            text: 'Enfermedades declaradas: ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                            children: [
-                              TextSpan(
-                                text: 'Ninguna',
-                                style: TextStyle(fontWeight: FontWeight.normal),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text.rich(
-                          TextSpan(
-                            text: 'Última visita: ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                            children: [
-                              TextSpan(
-                                text: '03/10/2025',
-                                style: TextStyle(fontWeight: FontWeight.normal),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text.rich(
-                          TextSpan(
-                            text: 'Próxima visita: ',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                            children: [
-                              TextSpan(
-                                text: 'Sin fecha',
-                                style: TextStyle(fontWeight: FontWeight.normal),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Lista de marcas de audio
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Marcas en el audio',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 228, 228, 228),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child:
-                        _audioMarks.isEmpty
-                            ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                child: Text(
-                                  'Aún no hay marcas de audio',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ),
-                            )
-                            : Column(
-                              children: [
-                                for (int i = 0; i < _audioMarks.length; i += 2)
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom:
-                                          i + 2 < _audioMarks.length ? 8 : 0,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue.shade100,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.bookmark,
-                                                      color: Colors.blue,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 2),
-                                                    Expanded(
-                                                      child: Text(
-                                                        _audioMarks[i],
-                                                        style: const TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    IconButton(
-                                                      onPressed:
-                                                          () =>
-                                                              _confirmRemoveMark(
-                                                                i,
-                                                              ),
-                                                      icon: const Icon(
-                                                        Icons.delete_outline,
-                                                        color: Colors.red,
-                                                        size: 26,
-                                                      ),
-                                                      padding: EdgeInsets.zero,
-                                                      constraints:
-                                                          const BoxConstraints(),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        if (i + 1 < _audioMarks.length) ...[
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blue.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.bookmark,
-                                                        color: Colors.blue,
-                                                        size: 20,
-                                                      ),
-                                                      SizedBox(width: 2),
-                                                      Expanded(
-                                                        child: Text(
-                                                          _audioMarks[i + 1],
-
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 15,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                      IconButton(
-                                                        onPressed:
-                                                            () =>
-                                                                _confirmRemoveMark(
-                                                                  i + 1,
-                                                                ),
-                                                        icon: const Icon(
-                                                          Icons.delete_outline,
-                                                          color: Colors.red,
-                                                          size: 25,
-                                                        ),
-                                                        constraints:
-                                                            const BoxConstraints(),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ] else
-                                          const Expanded(child: SizedBox()),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ),
+                  AudioMarksList(
+                    audioMarks: _audioMarks,
+                    onRemoveMark: _confirmRemoveMark,
                   ),
                 ],
               ),
@@ -976,34 +500,16 @@ class _AudioRecorderScreenState extends State<AudioRecorderScreen> {
           // Botón historia clínica
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navegar a la historia clínica
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Función de historia clínica en desarrollo',
-                      ),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orangeAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32),
+            child: ActionButton(
+              label: 'Ver historia clínica',
+              backgroundColor: Colors.orangeAccent,
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Función de historia clínica en desarrollo'),
                   ),
-                ),
-                child: const Text(
-                  'Ver historia clínica',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'audio_recorder_screen.dart';
-import 'recording_placeholder_screen.dart';
 import '../models/paciente.dart';
+import '../widgets/recording_widgets.dart';
 
 class GrabadoraScreen extends StatefulWidget {
   const GrabadoraScreen({super.key});
@@ -96,173 +96,28 @@ class _GrabadoraScreenState extends State<GrabadoraScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Dropdown
-            const Text(
-              'Seleccione un paciente',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<Paciente>(
-              value: _pacienteSeleccionado,
-              dropdownColor: Colors.white,
-              items:
-                  _pacientes.map((paciente) {
-                    return DropdownMenuItem<Paciente>(
-                      value: paciente,
-                      child: Text(paciente.displayText),
-                    );
-                  }).toList(),
+            // Selector de paciente
+            PatientSelector(
+              selectedPatient: _pacienteSeleccionado,
+              patients: _pacientes,
               onChanged: (Paciente? nuevoPaciente) {
                 setState(() {
                   _pacienteSeleccionado = nuevoPaciente;
                 });
               },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.lightBlueAccent),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.lightBlueAccent),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: Colors.lightBlueAccent,
-                    width: 2,
-                  ),
-                ),
-                hintText: 'Seleccionar paciente...',
-                filled: true,
-                fillColor: Colors.white,
-              ),
             ),
 
             const SizedBox(height: 32),
 
-            const Text(
-              'Seleccione el tipo de grabación:',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 16),
-
-            // Botón 1 - Nueva anamnesis (selector)
-            OutlinedButton(
-              onPressed:
-                  _pacienteSeleccionado == null
-                      ? null
-                      : () {
-                        setState(() {
-                          _tipoGrabacionSeleccionado = 'Nueva anamnesis';
-                        });
-                      },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                backgroundColor:
-                    _tipoGrabacionSeleccionado == 'Nueva anamnesis'
-                        ? Colors.lightBlueAccent.withOpacity(0.1)
-                        : Colors.white,
-                side: BorderSide(
-                  color:
-                      _pacienteSeleccionado == null
-                          ? Colors.grey
-                          : (_tipoGrabacionSeleccionado == 'Nueva anamnesis'
-                              ? Colors.lightBlueAccent
-                              : Colors.lightBlueAccent.withOpacity(0.5)),
-                  width:
-                      _tipoGrabacionSeleccionado == 'Nueva anamnesis' ? 2 : 1,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_tipoGrabacionSeleccionado == 'Nueva anamnesis')
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.lightBlueAccent,
-                      size: 20,
-                    ),
-                  if (_tipoGrabacionSeleccionado == 'Nueva anamnesis')
-                    const SizedBox(width: 8),
-                  Text(
-                    'Nueva anamnesis',
-                    style: TextStyle(
-                      color:
-                          _pacienteSeleccionado == null
-                              ? Colors.grey
-                              : Colors.lightBlueAccent,
-                      fontWeight:
-                          _tipoGrabacionSeleccionado == 'Nueva anamnesis'
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Botón 2 - Nuevo seguimiento (selector)
-            OutlinedButton(
-              onPressed:
-                  _pacienteSeleccionado == null
-                      ? null
-                      : () {
-                        setState(() {
-                          _tipoGrabacionSeleccionado = 'Nuevo seguimiento';
-                        });
-                      },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                backgroundColor:
-                    _tipoGrabacionSeleccionado == 'Nuevo seguimiento'
-                        ? Colors.lightBlueAccent.withOpacity(0.1)
-                        : Colors.white,
-                side: BorderSide(
-                  color:
-                      _pacienteSeleccionado == null
-                          ? Colors.grey
-                          : (_tipoGrabacionSeleccionado == 'Nuevo seguimiento'
-                              ? Colors.lightBlueAccent
-                              : Colors.lightBlueAccent.withOpacity(0.5)),
-                  width:
-                      _tipoGrabacionSeleccionado == 'Nuevo seguimiento' ? 2 : 1,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_tipoGrabacionSeleccionado == 'Nuevo seguimiento')
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.lightBlueAccent,
-                      size: 20,
-                    ),
-                  if (_tipoGrabacionSeleccionado == 'Nuevo seguimiento')
-                    const SizedBox(width: 8),
-                  Text(
-                    'Nuevo seguimiento',
-                    style: TextStyle(
-                      color:
-                          _pacienteSeleccionado == null
-                              ? Colors.grey
-                              : Colors.lightBlueAccent,
-                      fontWeight:
-                          _tipoGrabacionSeleccionado == 'Nuevo seguimiento'
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
+            // Selector de tipo de grabación
+            RecordingTypeSelector(
+              selectedType: _tipoGrabacionSeleccionado,
+              enabled: _pacienteSeleccionado != null,
+              onTypeSelected: (String tipo) {
+                setState(() {
+                  _tipoGrabacionSeleccionado = tipo;
+                });
+              },
             ),
 
             const Spacer(),

@@ -1,6 +1,91 @@
 import 'package:flutter/material.dart';
 import '../models/paciente.dart';
 
+/// Widget para el indicador de estado de grabación (Grabando/Pausado)
+class RecordingStatusIndicator extends StatelessWidget {
+  final bool isRecording;
+  final bool isPaused;
+
+  const RecordingStatusIndicator({
+    super.key,
+    required this.isRecording,
+    required this.isPaused,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isPaused ? Icons.pause : Icons.fiber_manual_record,
+          color: (!isRecording || isPaused) ? Colors.orange : Colors.red,
+          size: 16,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          (!isRecording || isPaused) ? 'Pausado' : 'Grabando',
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      ],
+    );
+  }
+}
+
+/// Widget para el cronómetro de grabación
+class RecordingTimer extends StatelessWidget {
+  final int seconds;
+
+  const RecordingTimer({super.key, required this.seconds});
+
+  String _formatTime(int seconds) {
+    final hours = (seconds ~/ 3600).toString().padLeft(2, '0');
+    final minutes = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final secs = (seconds % 60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$secs';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _formatTime(seconds),
+      style: const TextStyle(
+        fontSize: 32,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+}
+
+/// Widget para el botón de minimizar
+class MinimizeButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const MinimizeButton({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Text('Minimizar', style: TextStyle(fontSize: 12)),
+          SizedBox(width: 4),
+          Icon(Icons.logout, size: 16),
+        ],
+      ),
+    );
+  }
+}
+
 /// Widget para el encabezado de estado de grabación (gris/cyan)
 class RecordingHeader extends StatelessWidget {
   final bool isRecording;
@@ -20,23 +105,11 @@ class RecordingHeader extends StatelessWidget {
     required this.onMinimize,
   });
 
-  String _formatTime(int seconds) {
-    final hours = (seconds ~/ 3600).toString().padLeft(2, '0');
-    final minutes = ((seconds % 3600) ~/ 60).toString().padLeft(2, '0');
-    final secs = (seconds % 60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$secs';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(
-        top: 60,
-        left: 24,
-        right: 24,
-        bottom: 16,
-      ),
+      padding: const EdgeInsets.only(top: 60, left: 24, right: 24, bottom: 16),
       color: isRecording && !isPaused ? Colors.cyan : Colors.grey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,66 +117,20 @@ class RecordingHeader extends StatelessWidget {
           // Botón minimizar
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: onMinimize,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Text('Minimizar', style: TextStyle(fontSize: 12)),
-                    SizedBox(width: 4),
-                    Icon(Icons.logout, size: 16),
-                  ],
-                ),
-              ),
-            ],
+            children: [MinimizeButton(onPressed: onMinimize)],
           ),
           const SizedBox(height: 8),
 
           // Estado: Grabando/Pausado
           Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isPaused ? Icons.pause : Icons.fiber_manual_record,
-                  color: (!isRecording || isPaused) ? Colors.orange : Colors.red,
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  (!isRecording || isPaused) ? 'Pausado' : 'Grabando',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+            child: RecordingStatusIndicator(
+              isRecording: isRecording,
+              isPaused: isPaused,
             ),
           ),
 
           // Cronómetro
-          Center(
-            child: Text(
-              _formatTime(seconds),
-              style: const TextStyle(
-                fontSize: 32,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          Center(child: RecordingTimer(seconds: seconds)),
           const SizedBox(height: 16),
 
           // Visualizador de ondas
@@ -129,10 +156,7 @@ class RecordingHeader extends StatelessWidget {
 class WaveVisualizer extends StatelessWidget {
   final List<double> waveHeights;
 
-  const WaveVisualizer({
-    super.key,
-    required this.waveHeights,
-  });
+  const WaveVisualizer({super.key, required this.waveHeights});
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +195,8 @@ class RecordingControlButtons extends StatelessWidget {
   final bool isPaused;
   final VoidCallback onRecordOrPause;
   final VoidCallback onStop;
+  final VoidCallback? onAddMark;
+  final VoidCallback? onDiscard;
 
   const RecordingControlButtons({
     super.key,
@@ -178,6 +204,8 @@ class RecordingControlButtons extends StatelessWidget {
     required this.isPaused,
     required this.onRecordOrPause,
     required this.onStop,
+    this.onAddMark,
+    this.onDiscard,
   });
 
   @override
@@ -203,7 +231,7 @@ class RecordingControlButtons extends StatelessWidget {
           ],
         ),
 
-        // Botón Descartar - Animado desde el centro hacia la izquierda
+        // Botón izquierdo - Agregar marca o descartar
         AnimatedPositioned(
           duration: const Duration(milliseconds: 550),
           curve: Curves.easeOutBack,
@@ -219,10 +247,32 @@ class RecordingControlButtons extends StatelessWidget {
               opacity: isRecording ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 450),
               curve: Curves.easeOutBack,
-              child: _StopButton(
+              child: _LeftActionButton(
                 isPaused: isPaused,
-                onPressed: onStop,
+                onAddMark: onAddMark,
+                onDiscard: onDiscard,
               ),
+            ),
+          ),
+        ),
+
+        // Botón Detener - Animado desde el centro hacia la derecha
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 550),
+          curve: Curves.easeOutBack,
+          right:
+              isRecording
+                  ? MediaQuery.of(context).size.width / 2 - 132
+                  : MediaQuery.of(context).size.width / 2 - 40,
+          child: AnimatedScale(
+            scale: isRecording ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 550),
+            curve: Curves.easeOutBack,
+            child: AnimatedOpacity(
+              opacity: isRecording ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeOutBack,
+              child: _StopButton(isPaused: isPaused, onPressed: onStop),
             ),
           ),
         ),
@@ -259,10 +309,7 @@ class _CentralButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(
           (!isRecording || isPaused) ? Icons.mic : Icons.pause,
-          color:
-              (!isRecording || isPaused)
-                  ? Colors.white
-                  : Colors.black,
+          color: (!isRecording || isPaused) ? Colors.white : Colors.black,
           size: 60,
         ),
       ),
@@ -275,10 +322,7 @@ class _StopButton extends StatelessWidget {
   final bool isPaused;
   final VoidCallback onPressed;
 
-  const _StopButton({
-    required this.isPaused,
-    required this.onPressed,
-  });
+  const _StopButton({required this.isPaused, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -302,107 +346,92 @@ class _StopButton extends StatelessWidget {
   }
 }
 
-/// Widget para la ficha del paciente
-class PatientInfoCard extends StatelessWidget {
-  final Paciente paciente;
+/// Botón de acción izquierdo (agregar marca o descartar)
+class _LeftActionButton extends StatelessWidget {
+  final bool isPaused;
+  final VoidCallback? onAddMark;
+  final VoidCallback? onDiscard;
 
-  const PatientInfoCard({
-    super.key,
-    required this.paciente,
+  const _LeftActionButton({
+    required this.isPaused,
+    this.onAddMark,
+    this.onDiscard,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: const Color.fromARGB(255, 228, 228, 228),
-        borderRadius: BorderRadius.circular(12),
+        shape: BoxShape.circle,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: IconButton(
+        onPressed: isPaused ? onDiscard : onAddMark,
+        icon: Icon(
+          isPaused ? Icons.close : Icons.bookmark_add,
+          color: isPaused ? Colors.red : Colors.blue,
+          size: 42,
+        ),
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+}
+
+/// Widget para la ficha del paciente
+class PatientInfoCard extends StatelessWidget {
+  final Paciente paciente;
+
+  const PatientInfoCard({super.key, required this.paciente});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ficha del paciente',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 228, 228, 228),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('Nombre', paciente.nombre),
+              const SizedBox(height: 8),
+              _buildInfoRow('ID', paciente.id),
+              const SizedBox(height: 8),
+              _buildInfoRow('Edad', '${paciente.edad}'),
+              const SizedBox(height: 8),
+              _buildInfoRow('Enfermedades declaradas', 'Ninguna'),
+              const SizedBox(height: 8),
+              _buildInfoRow('Última visita', '03/10/2025'),
+              const SizedBox(height: 8),
+              _buildInfoRow('Próxima visita', 'Sin fecha'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Text.rich(
+      TextSpan(
+        text: '$label: ',
+        style: const TextStyle(fontWeight: FontWeight.bold),
         children: [
-          const Text(
-            'Ficha del paciente',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          Text.rich(
-            TextSpan(
-              text: 'Nombre: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: paciente.nombre,
-                  style: const TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text.rich(
-            TextSpan(
-              text: 'ID: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: paciente.id,
-                  style: const TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text.rich(
-            TextSpan(
-              text: 'Edad: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: '${paciente.edad}',
-                  style: const TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text.rich(
-            TextSpan(
-              text: 'Enfermedades declaradas: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: 'Ninguna',
-                  style: TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text.rich(
-            TextSpan(
-              text: 'Última visita: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: '03/10/2025',
-                  style: TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text.rich(
-            TextSpan(
-              text: 'Próxima visita: ',
-              style: TextStyle(fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: 'Sin fecha',
-                  style: TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ],
-            ),
+          TextSpan(
+            text: value,
+            style: const TextStyle(fontWeight: FontWeight.normal),
           ),
         ],
       ),
@@ -427,7 +456,7 @@ class AudioMarksList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Marcas en el audio',
+          'Marcas de audio',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
@@ -440,52 +469,76 @@ class AudioMarksList extends StatelessWidget {
           ),
           child:
               audioMarks.isEmpty
-                  ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        'Aún no hay marcas de audio',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  )
-                  : Column(
-                    children: [
-                      for (int i = 0; i < audioMarks.length; i += 2)
-                        Padding(
-                          padding: EdgeInsets.only(
-                            bottom: i + 2 < audioMarks.length ? 8 : 0,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _AudioMarkItem(
-                                  index: i,
-                                  time: audioMarks[i],
-                                  onRemove: () => onRemoveMark(i),
-                                ),
-                              ),
-                              if (i + 1 < audioMarks.length) ...[
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _AudioMarkItem(
-                                    index: i + 1,
-                                    time: audioMarks[i + 1],
-                                    onRemove: () => onRemoveMark(i + 1),
-                                  ),
-                                ),
-                              ] else
-                                const Expanded(child: SizedBox()),
-                            ],
-                          ),
-                        ),
-                    ],
+                  ? const _EmptyMarksPlaceholder()
+                  : _AudioMarksGrid(
+                    audioMarks: audioMarks,
+                    onRemoveMark: onRemoveMark,
                   ),
         ),
+      ],
+    );
+  }
+}
+
+/// Widget para mostrar el placeholder cuando no hay marcas
+class _EmptyMarksPlaceholder extends StatelessWidget {
+  const _EmptyMarksPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          'Aún no hay marcas de audio',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget para mostrar la cuadrícula de marcas
+class _AudioMarksGrid extends StatelessWidget {
+  final List<String> audioMarks;
+  final Function(int) onRemoveMark;
+
+  const _AudioMarksGrid({required this.audioMarks, required this.onRemoveMark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (int i = 0; i < audioMarks.length; i += 2)
+          Padding(
+            padding: EdgeInsets.only(bottom: i + 2 < audioMarks.length ? 8 : 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _AudioMarkItem(
+                    index: i,
+                    time: audioMarks[i],
+                    onRemove: () => onRemoveMark(i),
+                  ),
+                ),
+                if (i + 1 < audioMarks.length) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _AudioMarkItem(
+                      index: i + 1,
+                      time: audioMarks[i + 1],
+                      onRemove: () => onRemoveMark(i + 1),
+                    ),
+                  ),
+                ] else
+                  const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -508,46 +561,71 @@ class _AudioMarkItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color.fromARGB(218, 0, 225, 255),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Marca ${index + 1}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                onPressed: onRemove,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.red,
-                  size: 25,
-                ),
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
           Align(
             alignment: Alignment.centerLeft,
             child: Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 6),
+              padding: const EdgeInsets.only(left: 4),
               child: Text(
                 time,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
+          const Spacer(),
+          IconButton(
+            onPressed: onRemove,
+            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 28),
+            constraints: const BoxConstraints(),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Widget para botones de acción principales
+class ActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final Color backgroundColor;
+  final Color? textColor;
+
+  const ActionButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    required this.backgroundColor,
+    this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(32),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textColor ?? Colors.white,
+          ),
+        ),
       ),
     );
   }

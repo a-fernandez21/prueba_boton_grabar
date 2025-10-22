@@ -1,5 +1,164 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
+import '../models/paciente.dart';
+
+/// Widget para seleccionar un paciente de una lista
+class PatientSelector extends StatelessWidget {
+  final Paciente? selectedPatient;
+  final List<Paciente> patients;
+  final ValueChanged<Paciente?> onChanged;
+
+  const PatientSelector({
+    super.key,
+    required this.selectedPatient,
+    required this.patients,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Seleccione un paciente',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<Paciente>(
+          value: selectedPatient,
+          dropdownColor: Colors.white,
+          items:
+              patients.map((paciente) {
+                return DropdownMenuItem<Paciente>(
+                  value: paciente,
+                  child: Text(paciente.displayText),
+                );
+              }).toList(),
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.lightBlueAccent),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.lightBlueAccent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(
+                color: Colors.lightBlueAccent,
+                width: 2,
+              ),
+            ),
+            hintText: 'Seleccionar paciente...',
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Widget para seleccionar el tipo de grabación
+class RecordingTypeSelector extends StatelessWidget {
+  final String? selectedType;
+  final bool enabled;
+  final ValueChanged<String> onTypeSelected;
+
+  const RecordingTypeSelector({
+    super.key,
+    required this.selectedType,
+    required this.enabled,
+    required this.onTypeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Seleccione el tipo de grabación:',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 16),
+        _RecordingTypeButton(
+          label: 'Nueva anamnesis',
+          isSelected: selectedType == 'Nueva anamnesis',
+          enabled: enabled,
+          onPressed: () => onTypeSelected('Nueva anamnesis'),
+        ),
+        const SizedBox(height: 12),
+        _RecordingTypeButton(
+          label: 'Nuevo seguimiento',
+          isSelected: selectedType == 'Nuevo seguimiento',
+          enabled: enabled,
+          onPressed: () => onTypeSelected('Nuevo seguimiento'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Botón individual de tipo de grabación
+class _RecordingTypeButton extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _RecordingTypeButton({
+    required this.label,
+    required this.isSelected,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: enabled ? onPressed : null,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+        backgroundColor:
+            isSelected ? Colors.lightBlueAccent.withOpacity(0.1) : Colors.white,
+        side: BorderSide(
+          color:
+              enabled
+                  ? (isSelected
+                      ? Colors.lightBlueAccent
+                      : Colors.lightBlueAccent.withOpacity(0.5))
+                  : Colors.grey,
+          width: isSelected ? 2 : 1,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (isSelected) ...[
+            const Icon(
+              Icons.check_circle,
+              color: Colors.lightBlueAccent,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: enabled ? Colors.lightBlueAccent : Colors.grey,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Widget para mostrar un diálogo informativo sobre grabaciones
 class RecordingsInfoDialog extends StatelessWidget {
@@ -127,9 +286,10 @@ class RecordingButton extends StatelessWidget {
           height: AppConstants.recordButtonSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isRecording
-                ? AppConstants.secondaryColor
-                : AppConstants.primaryColor,
+            color:
+                isRecording
+                    ? AppConstants.secondaryColor
+                    : AppConstants.primaryColor,
             boxShadow: [
               BoxShadow(
                 color: (isRecording
