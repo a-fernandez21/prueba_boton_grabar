@@ -37,6 +37,13 @@ class RecordingOverlayService {
   }
 
   void _startOverlayTimer() {
+    // Evitar crear múltiples timers
+    if (_timer != null) {
+      print('⚠️ Timer del overlay ya activo, no crear uno nuevo');
+      return;
+    }
+
+    print('⏱️ Iniciando timer del overlay');
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isPaused) {
         _seconds++;
@@ -61,6 +68,8 @@ class RecordingOverlayService {
     _isInAudioScreen = inAudioScreen;
 
     if (inAudioScreen) {
+      // Cuando volvemos a la pantalla de audio, detener el timer del overlay
+      _stopOverlayTimer();
       hideOverlay();
       return;
     }
@@ -126,6 +135,9 @@ class RecordingOverlayService {
     _isPaused = false;
     _stopOverlayTimer();
     _seconds = 0;
+    _audioMarks.clear();
+    _paciente = null;
+    _tipoGrabacion = null;
     _overlayEntry?.markNeedsBuild();
   }
 
@@ -204,10 +216,15 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
   ) async {
     if (service._paciente == null || service._tipoGrabacion == null) return;
 
+    // Detener el timer del overlay antes de navegar
+    service._stopOverlayTimer();
+
+    // Ocultar el overlay y marcar que estamos en la pantalla de audio
     service.hideOverlay();
     service.setInAudioScreen(true);
 
-    await Navigator.of(context, rootNavigator: true).push(
+    // Navegar reemplazando la pantalla placeholder
+    await Navigator.of(context, rootNavigator: true).pushReplacement(
       MaterialPageRoute(
         builder:
             (context) => AudioRecorderScreen(
@@ -227,99 +244,217 @@ class _FloatingRecordingWidgetState extends State<_FloatingRecordingWidget>
       builder: (context, child) {
         _updateWaveHeights(service);
 
-        return GestureDetector(
-          onTap: () => _navigateToRecordingScreen(context, service),
+        return Material(
+          color: Colors.transparent,
           child: Container(
             width: double.infinity,
-            height: 80,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: service.isPaused ? Colors.orange : Colors.cyan,
-              borderRadius: BorderRadius.circular(40),
+              gradient: LinearGradient(
+                colors:
+                    service.isPaused
+                        ? [Colors.orange.shade400, Colors.orange.shade600]
+                        : [Colors.cyan.shade400, Colors.cyan.shade600],
+              ),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Ondas de audio a la izquierda
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _waveHeights.length,
-                      (index) => Container(
-                        width: 3,
-                        height: 20 * _waveHeights[index],
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Primera fila: Ondas + Estado + Tiempo
+                Row(
+                  children: [
+                    // Ondas de audio
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _waveHeights.length,
+                          (index) => Container(
+                            width: 3,
+                            height: 25 * _waveHeights[index],
+                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // Icono de estado de grabación
-                  Icon(
-                    service.isPaused ? Icons.pause : Icons.fiber_manual_record,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                    const SizedBox(width: 12),
 
-                  // Sección derecha: Duración y botón
-                  Row(
-                    children: [
-                      // Duración a la izquierda del botón
-                      Text(
+                    // Icono de estado
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        service.isPaused
+                            ? Icons.pause
+                            : Icons.fiber_manual_record,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Duración
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
                         service.formatTime(service.seconds),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // Botón de pausar/reanudar
-                      GestureDetector(
-                        onTap: () async {
-                          if (service.isPaused) {
-                            await service.resumeRecording();
-                          } else {
-                            await service.pauseRecording();
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Segunda fila: Botones de control
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Botón Volver a pantalla
+                    _buildControlButton(
+                      icon: Icons.open_in_full,
+                      label: 'Abrir',
+                      color: Colors.white.withOpacity(0.9),
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      onTap: () => _navigateToRecordingScreen(context, service),
+                    ),
+
+                    // Botón Pausar/Reanudar
+                    _buildControlButton(
+                      icon: service.isPaused ? Icons.play_arrow : Icons.pause,
+                      label: service.isPaused ? 'Reanudar' : 'Pausar',
+                      color: Colors.white.withOpacity(0.9),
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      onTap: () async {
+                        if (service.isPaused) {
+                          await service.resumeRecording();
+                        } else {
+                          await service.pauseRecording();
+                        }
+                      },
+                    ),
+
+                    // Botón Detener
+                    _buildControlButton(
+                      icon: Icons.stop,
+                      label: 'Detener',
+                      color: Colors.white.withOpacity(0.9),
+                      backgroundColor: Colors.red.withOpacity(0.3),
+                      onTap: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext dialogContext) {
+                            return AlertDialog(
+                              title: const Text('Detener grabación'),
+                              content: const Text(
+                                '¿Deseas detener y guardar la grabación?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.of(
+                                        dialogContext,
+                                      ).pop(false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                TextButton(
+                                  onPressed:
+                                      () =>
+                                          Navigator.of(dialogContext).pop(true),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.green,
+                                  ),
+                                  child: const Text('Guardar'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirmed == true) {
+                          await service.stopRecordingFromOverlay();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Grabación guardada'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
                           }
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color:
-                                service.isPaused
-                                    ? Colors.orange
-                                    : const Color.fromARGB(255, 87, 226, 224),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Icon(
-                            service.isPaused ? Icons.mic : Icons.pause,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color backgroundColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
