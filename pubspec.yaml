@@ -34,6 +34,10 @@ dependencies:
   permission_handler: ^12.0.1
   path_provider: ^2.0.16
   share_plus: ^12.0.0
+  pumpun_core:
+    git:
+      url: https://pumpun:WwwPxFJhy9z_xFwh8rMz@gitlab.com/pumpun-dixital/pumpun-core.git
+      ref: timezone
 
 
 
